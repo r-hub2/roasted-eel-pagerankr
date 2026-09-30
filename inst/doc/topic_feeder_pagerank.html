@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+
+<meta name="author" content="Bart Turczynski" />
+
+<meta name="date" content="2026-09-30" />
+
+<title>Topic Feeder PageRank: what powers a content cluster</title>
+
+<script>// Pandoc 2.9 adds attributes on both header and div. We remove the former (to
+// be compatible with the behavior of Pandoc < 2.8).
+document.addEventListener('DOMContentLoaded', function(e) {
+  var hs = document.querySelectorAll("div.section[class*='level'] > :first-child");
+  var i, h, a;
+  for (i = 0; i < hs.length; i++) {
+    h = hs[i];
+    if (!/^h[1-6]$/i.test(h.tagName)) continue;  // it should be a header h1-h6
+    a = h.attributes;
+    while (a.length > 0) h.removeAttribute(a[0].name);
+  }
+});
+</script>
+
+<style type="text/css">
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+span.underline{text-decoration: underline;}
+div.column{display: inline-block; vertical-align: top; width: 50%;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+</style>
+
+
+
+<style type="text/css">
+code {
+white-space: pre;
+}
+.sourceCode {
+overflow: visible;
+}
+</style>
+<style type="text/css" data-origin="pandoc">
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+{ counter-reset: source-line 0; }
+pre.numberSource code > span
+{ position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+{ content: counter(source-line);
+position: relative; left: -1em; text-align: right; vertical-align: baseline;
+border: none; display: inline-block;
+-webkit-touch-callout: none; -webkit-user-select: none;
+-khtml-user-select: none; -moz-user-select: none;
+-ms-user-select: none; user-select: none;
+padding: 0 4px; width: 4em;
+color: #aaaaaa;
+}
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa; padding-left: 4px; }
+div.sourceCode
+{ }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ff0000; font-weight: bold; } 
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.at { color: #7d9029; } 
+code span.bn { color: #40a070; } 
+code span.bu { color: #008000; } 
+code span.cf { color: #007020; font-weight: bold; } 
+code span.ch { color: #4070a0; } 
+code span.cn { color: #880000; } 
+code span.co { color: #60a0b0; font-style: italic; } 
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.do { color: #ba2121; font-style: italic; } 
+code span.dt { color: #902000; } 
+code span.dv { color: #40a070; } 
+code span.er { color: #ff0000; font-weight: bold; } 
+code span.ex { } 
+code span.fl { color: #40a070; } 
+code span.fu { color: #06287e; } 
+code span.im { color: #008000; font-weight: bold; } 
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.kw { color: #007020; font-weight: bold; } 
+code span.op { color: #666666; } 
+code span.ot { color: #007020; } 
+code span.pp { color: #bc7a00; } 
+code span.sc { color: #4070a0; } 
+code span.ss { color: #bb6688; } 
+code span.st { color: #4070a0; } 
+code span.va { color: #19177c; } 
+code span.vs { color: #4070a0; } 
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } 
+</style>
+<script>
+// apply pandoc div.sourceCode style to pre.sourceCode instead
+(function() {
+  var sheets = document.styleSheets;
+  for (var i = 0; i < sheets.length; i++) {
+    if (sheets[i].ownerNode.dataset["origin"] !== "pandoc") continue;
+    try { var rules = sheets[i].cssRules; } catch (e) { continue; }
+    var j = 0;
+    while (j < rules.length) {
+      var rule = rules[j];
+      // check if there is a div.sourceCode rule
+      if (rule.type !== rule.STYLE_RULE || rule.selectorText !== "div.sourceCode") {
+        j++;
+        continue;
+      }
+      var style = rule.style.cssText;
+      // check if color or background-color is set
+      if (rule.style.color === '' && rule.style.backgroundColor === '') {
+        j++;
+        continue;
+      }
+      // replace div.sourceCode by a pre.sourceCode rule
+      sheets[i].deleteRule(j);
+      sheets[i].insertRule('pre.sourceCode{' + style + '}', j);
+    }
+  }
+})();
+</script>
+
+
+
+
+<style type="text/css">body {
+background-color: #fff;
+margin: 1em auto;
+max-width: 700px;
+overflow: visible;
+padding-left: 2em;
+padding-right: 2em;
+font-family: "Open Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+font-size: 14px;
+line-height: 1.35;
+}
+#TOC {
+clear: both;
+margin: 0 0 10px 10px;
+padding: 4px;
+width: 400px;
+border: 1px solid #CCCCCC;
+border-radius: 5px;
+background-color: #f6f6f6;
+font-size: 13px;
+line-height: 1.3;
+}
+#TOC .toctitle {
+font-weight: bold;
+font-size: 15px;
+margin-left: 5px;
+}
+#TOC ul {
+padding-left: 40px;
+margin-left: -1.5em;
+margin-top: 5px;
+margin-bottom: 5px;
+}
+#TOC ul ul {
+margin-left: -2em;
+}
+#TOC li {
+line-height: 16px;
+}
+table {
+margin: 1em auto;
+border-width: 1px;
+border-color: #DDDDDD;
+border-style: outset;
+border-collapse: collapse;
+}
+table th {
+border-width: 2px;
+padding: 5px;
+border-style: inset;
+}
+table td {
+border-width: 1px;
+border-style: inset;
+line-height: 18px;
+padding: 5px 5px;
+}
+table, table th, table td {
+border-left-style: none;
+border-right-style: none;
+}
+table thead, table tr.even {
+background-color: #f7f7f7;
+}
+p {
+margin: 0.5em 0;
+}
+blockquote {
+background-color: #f6f6f6;
+padding: 0.25em 0.75em;
+}
+hr {
+border-style: solid;
+border: none;
+border-top: 1px solid #777;
+margin: 28px 0;
+}
+dl {
+margin-left: 0;
+}
+dl dd {
+margin-bottom: 13px;
+margin-left: 13px;
+}
+dl dt {
+font-weight: bold;
+}
+ul {
+margin-top: 0;
+}
+ul li {
+list-style: circle outside;
+}
+ul ul {
+margin-bottom: 0;
+}
+pre, code {
+background-color: #f7f7f7;
+border-radius: 3px;
+color: #333;
+white-space: pre-wrap; 
+}
+pre {
+border-radius: 3px;
+margin: 5px 0px 10px 0px;
+padding: 10px;
+}
+pre:not([class]) {
+background-color: #f7f7f7;
+}
+code {
+font-family: Consolas, Monaco, 'Courier New', monospace;
+font-size: 85%;
+}
+p > code, li > code {
+padding: 2px 0px;
+}
+div.figure {
+text-align: center;
+}
+img {
+background-color: #FFFFFF;
+padding: 2px;
+border: 1px solid #DDDDDD;
+border-radius: 3px;
+border: 1px solid #CCCCCC;
+margin: 0 5px;
+}
+h1 {
+margin-top: 0;
+font-size: 35px;
+line-height: 40px;
+}
+h2 {
+border-bottom: 4px solid #f7f7f7;
+padding-top: 10px;
+padding-bottom: 2px;
+font-size: 145%;
+}
+h3 {
+border-bottom: 2px solid #f7f7f7;
+padding-top: 10px;
+font-size: 120%;
+}
+h4 {
+border-bottom: 1px solid #f7f7f7;
+margin-left: 8px;
+font-size: 105%;
+}
+h5, h6 {
+border-bottom: 1px solid #ccc;
+font-size: 105%;
+}
+a {
+color: #0033dd;
+text-decoration: none;
+}
+a:hover {
+color: #6666ff; }
+a:visited {
+color: #800080; }
+a:visited:hover {
+color: #BB00BB; }
+a[href^="http:"] {
+text-decoration: underline; }
+a[href^="https:"] {
+text-decoration: underline; }
+
+code > span.kw { color: #555; font-weight: bold; } 
+code > span.dt { color: #902000; } 
+code > span.dv { color: #40a070; } 
+code > span.bn { color: #d14; } 
+code > span.fl { color: #d14; } 
+code > span.ch { color: #d14; } 
+code > span.st { color: #d14; } 
+code > span.co { color: #888888; font-style: italic; } 
+code > span.ot { color: #007020; } 
+code > span.al { color: #ff0000; font-weight: bold; } 
+code > span.fu { color: #900; font-weight: bold; } 
+code > span.er { color: #a61717; background-color: #e3d2d2; } 
+</style>
+
+
+
+
+</head>
+
+<body>
+
+
+
+
+<h1 class="title toc-ignore">Topic Feeder PageRank: what powers a
+content cluster</h1>
+<h4 class="author">Bart Turczynski</h4>
+<h4 class="date">2026-09-30</h4>
+
+
+<div id="TOC">
+<ul>
+<li><a href="#the-question-this-answers" id="toc-the-question-this-answers">The question this answers</a></li>
+<li><a href="#why-it-is-not-just-re-reading-pagerank" id="toc-why-it-is-not-just-re-reading-pagerank">Why it is not just
+re-reading PageRank</a></li>
+<li><a href="#a-worked-example" id="toc-a-worked-example">A worked
+example</a>
+<ul>
+<li><a href="#reading-the-output" id="toc-reading-the-output">Reading
+the output</a></li>
+</ul></li>
+<li><a href="#contrast-with-the-forward-authority-view" id="toc-contrast-with-the-forward-authority-view">Contrast with the
+forward (authority) view</a></li>
+<li><a href="#where-it-sits-among-the-reverse-direction-tools" id="toc-where-it-sits-among-the-reverse-direction-tools">Where it sits
+among the reverse-direction tools</a></li>
+<li><a href="#notes" id="toc-notes">Notes</a></li>
+</ul>
+</div>
+
+<div id="the-question-this-answers" class="section level2">
+<h2>The question this answers</h2>
+<p>You have a content cluster you care about — say the
+<strong>AI-Agent</strong> product area — and you want to know which
+internal pages <em>power</em> it. Not “which AI-Agent page is the
+strongest” (that is an authority question), but the inverse:
+<strong>which pages funnel link authority <em>into</em> the
+cluster?</strong> Those are the internal hubs worth protecting,
+strengthening, or learning from when you build the next section.</p>
+<p><code>topic_feeder_pagerank()</code> answers exactly that. It is the
+<strong>reverse-graph sibling</strong> of
+<code>topic_sensitive_pagerank()</code>.</p>
+</div>
+<div id="why-it-is-not-just-re-reading-pagerank" class="section level2">
+<h2>Why it is not just re-reading PageRank</h2>
+<p>In PageRank, authority flows <strong>along</strong> link direction —
+linking <em>to</em> an important page does not make the linker
+important. So “the pages that feed the AI-Agent cluster” cannot be
+recovered from forward PageRank or from
+<code>topic_sensitive_pagerank()</code>: those rank pages by
+<strong>inflow</strong> (you are important because important pages point
+at you). Feeders are the opposite, an <strong>outflow</strong> notion
+(you are important because <em>you</em> point at the cluster).</p>
+<p>Mechanically, <code>topic_feeder_pagerank()</code> seeds the random
+surfer’s teleport on the cluster and runs PageRank on the
+<strong>transposed</strong> graph (<code>reverse = TRUE</code>). Mass
+lands on the cluster, then walks <em>backward</em> along links, piling
+up on the pages that feed it. The damping factor attenuates that credit
+with link distance — a direct feeder beats a feeder-of-a-feeder. No new
+solver: it is a <code>prior_df</code> handed to
+<code>pagerank(reverse = TRUE)</code>.</p>
+</div>
+<div id="a-worked-example" class="section level2">
+<h2>A worked example</h2>
+<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" tabindex="-1"></a>edges <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(</span>
+<span id="cb1-2"><a href="#cb1-2" tabindex="-1"></a>  <span class="at">from =</span> <span class="fu">c</span>(</span>
+<span id="cb1-3"><a href="#cb1-3" tabindex="-1"></a>    <span class="st">&quot;/hub&quot;</span>, <span class="st">&quot;/hub&quot;</span>, <span class="st">&quot;/feeder&quot;</span>, <span class="st">&quot;/blog-ai&quot;</span>, <span class="st">&quot;/ai&quot;</span>,</span>
+<span id="cb1-4"><a href="#cb1-4" tabindex="-1"></a>    <span class="st">&quot;/footer&quot;</span>, <span class="st">&quot;/sports&quot;</span>, <span class="st">&quot;/footer&quot;</span></span>
+<span id="cb1-5"><a href="#cb1-5" tabindex="-1"></a>  ),</span>
+<span id="cb1-6"><a href="#cb1-6" tabindex="-1"></a>  <span class="at">to =</span> <span class="fu">c</span>(</span>
+<span id="cb1-7"><a href="#cb1-7" tabindex="-1"></a>    <span class="st">&quot;/ai&quot;</span>, <span class="st">&quot;/ai-demo&quot;</span>, <span class="st">&quot;/ai&quot;</span>, <span class="st">&quot;/ai&quot;</span>, <span class="st">&quot;/ai-demo&quot;</span>,</span>
+<span id="cb1-8"><a href="#cb1-8" tabindex="-1"></a>    <span class="st">&quot;/ai&quot;</span>, <span class="st">&quot;/scores&quot;</span>, <span class="st">&quot;/sports&quot;</span></span>
+<span id="cb1-9"><a href="#cb1-9" tabindex="-1"></a>  )</span>
+<span id="cb1-10"><a href="#cb1-10" tabindex="-1"></a>)</span></code></pre></div>
+<p>The AI-Agent cluster is <code>c(&quot;/ai&quot;, &quot;/ai-demo&quot;)</code>. By
+construction <code>/hub</code> is the strongest feeder (it links to
+<em>both</em> cluster pages), <code>/feeder</code> and
+<code>/blog-ai</code> feed it once each, <code>/footer</code> links in
+too, and <code>/sports</code> / <code>/scores</code> are unrelated.</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" tabindex="-1"></a>fr <span class="ot">&lt;-</span> <span class="fu">topic_feeder_pagerank</span>(</span>
+<span id="cb2-2"><a href="#cb2-2" tabindex="-1"></a>  edges,</span>
+<span id="cb2-3"><a href="#cb2-3" tabindex="-1"></a>  <span class="at">seeds =</span> <span class="fu">c</span>(<span class="st">&quot;/ai&quot;</span>, <span class="st">&quot;/ai-demo&quot;</span>),</span>
+<span id="cb2-4"><a href="#cb2-4" tabindex="-1"></a>  <span class="at">clean_edge_urls =</span> <span class="cn">FALSE</span>,</span>
+<span id="cb2-5"><a href="#cb2-5" tabindex="-1"></a>  <span class="at">prior_verbose =</span> <span class="cn">FALSE</span></span>
+<span id="cb2-6"><a href="#cb2-6" tabindex="-1"></a>)</span>
+<span id="cb2-7"><a href="#cb2-7" tabindex="-1"></a>fr[, <span class="fu">c</span>(<span class="st">&quot;node_name&quot;</span>, <span class="st">&quot;pagerank&quot;</span>, <span class="st">&quot;prior_weight&quot;</span>)]</span>
+<span id="cb2-8"><a href="#cb2-8" tabindex="-1"></a><span class="co">#&gt;   node_name  pagerank prior_weight</span></span>
+<span id="cb2-9"><a href="#cb2-9" tabindex="-1"></a><span class="co">#&gt; 1       /ai 0.3508772          0.5</span></span>
+<span id="cb2-10"><a href="#cb2-10" tabindex="-1"></a><span class="co">#&gt; 2  /ai-demo 0.2462296          0.5</span></span>
+<span id="cb2-11"><a href="#cb2-11" tabindex="-1"></a><span class="co">#&gt; 3      /hub 0.1792090          0.0</span></span>
+<span id="cb2-12"><a href="#cb2-12" tabindex="-1"></a><span class="co">#&gt; 4  /blog-ai 0.0745614          0.0</span></span>
+<span id="cb2-13"><a href="#cb2-13" tabindex="-1"></a><span class="co">#&gt; 5   /feeder 0.0745614          0.0</span></span>
+<span id="cb2-14"><a href="#cb2-14" tabindex="-1"></a><span class="co">#&gt; 6   /footer 0.0745614          0.0</span></span>
+<span id="cb2-15"><a href="#cb2-15" tabindex="-1"></a><span class="co">#&gt; 7   /scores 0.0000000          0.0</span></span>
+<span id="cb2-16"><a href="#cb2-16" tabindex="-1"></a><span class="co">#&gt; 8   /sports 0.0000000          0.0</span></span></code></pre></div>
+<div id="reading-the-output" class="section level3">
+<h3>Reading the output</h3>
+<ul>
+<li><strong><code>prior_weight &gt; 0</code></strong> marks the cluster
+pages themselves — they carry the teleport mass directly, so a high
+score there is <em>teleport, not a feeder signal</em>.</li>
+<li><strong>The feeders are the high-<code>pagerank</code> rows with
+<code>prior_weight == 0</code>.</strong> Filter to those:</li>
+</ul>
+<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" tabindex="-1"></a>feeders <span class="ot">&lt;-</span> fr[fr<span class="sc">$</span>prior_weight <span class="sc">==</span> <span class="dv">0</span>, <span class="fu">c</span>(<span class="st">&quot;node_name&quot;</span>, <span class="st">&quot;pagerank&quot;</span>)]</span>
+<span id="cb3-2"><a href="#cb3-2" tabindex="-1"></a>feeders</span>
+<span id="cb3-3"><a href="#cb3-3" tabindex="-1"></a><span class="co">#&gt;   node_name  pagerank</span></span>
+<span id="cb3-4"><a href="#cb3-4" tabindex="-1"></a><span class="co">#&gt; 3      /hub 0.1792090</span></span>
+<span id="cb3-5"><a href="#cb3-5" tabindex="-1"></a><span class="co">#&gt; 4  /blog-ai 0.0745614</span></span>
+<span id="cb3-6"><a href="#cb3-6" tabindex="-1"></a><span class="co">#&gt; 5   /feeder 0.0745614</span></span>
+<span id="cb3-7"><a href="#cb3-7" tabindex="-1"></a><span class="co">#&gt; 6   /footer 0.0745614</span></span>
+<span id="cb3-8"><a href="#cb3-8" tabindex="-1"></a><span class="co">#&gt; 7   /scores 0.0000000</span></span>
+<span id="cb3-9"><a href="#cb3-9" tabindex="-1"></a><span class="co">#&gt; 8   /sports 0.0000000</span></span></code></pre></div>
+<p><code>/hub</code> tops the feeder list exactly as designed, and the
+off-topic <code>/sports</code> neighborhood earns no feeder credit.</p>
+</div>
+</div>
+<div id="contrast-with-the-forward-authority-view" class="section level2">
+<h2>Contrast with the forward (authority) view</h2>
+<p>Run <code>topic_sensitive_pagerank()</code> on the same cluster to
+see the difference in direction:</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" tabindex="-1"></a>auth <span class="ot">&lt;-</span> <span class="fu">topic_sensitive_pagerank</span>(</span>
+<span id="cb4-2"><a href="#cb4-2" tabindex="-1"></a>  edges,</span>
+<span id="cb4-3"><a href="#cb4-3" tabindex="-1"></a>  <span class="at">topics =</span> <span class="fu">list</span>(<span class="at">ai_agent =</span> <span class="fu">c</span>(<span class="st">&quot;/ai&quot;</span>, <span class="st">&quot;/ai-demo&quot;</span>)),</span>
+<span id="cb4-4"><a href="#cb4-4" tabindex="-1"></a>  <span class="at">clean_edge_urls =</span> <span class="cn">FALSE</span>,</span>
+<span id="cb4-5"><a href="#cb4-5" tabindex="-1"></a>  <span class="at">prior_verbose =</span> <span class="cn">FALSE</span></span>
+<span id="cb4-6"><a href="#cb4-6" tabindex="-1"></a>)</span>
+<span id="cb4-7"><a href="#cb4-7" tabindex="-1"></a>auth[, <span class="fu">c</span>(<span class="st">&quot;node_name&quot;</span>, <span class="st">&quot;ai_agent&quot;</span>)]</span>
+<span id="cb4-8"><a href="#cb4-8" tabindex="-1"></a><span class="co">#&gt;   node_name  ai_agent</span></span>
+<span id="cb4-9"><a href="#cb4-9" tabindex="-1"></a><span class="co">#&gt; 1  /ai-demo 0.6491228</span></span>
+<span id="cb4-10"><a href="#cb4-10" tabindex="-1"></a><span class="co">#&gt; 2       /ai 0.3508772</span></span>
+<span id="cb4-11"><a href="#cb4-11" tabindex="-1"></a><span class="co">#&gt; 3  /blog-ai 0.0000000</span></span>
+<span id="cb4-12"><a href="#cb4-12" tabindex="-1"></a><span class="co">#&gt; 4   /feeder 0.0000000</span></span>
+<span id="cb4-13"><a href="#cb4-13" tabindex="-1"></a><span class="co">#&gt; 5   /footer 0.0000000</span></span>
+<span id="cb4-14"><a href="#cb4-14" tabindex="-1"></a><span class="co">#&gt; 6      /hub 0.0000000</span></span>
+<span id="cb4-15"><a href="#cb4-15" tabindex="-1"></a><span class="co">#&gt; 7   /scores 0.0000000</span></span>
+<span id="cb4-16"><a href="#cb4-16" tabindex="-1"></a><span class="co">#&gt; 8   /sports 0.0000000</span></span></code></pre></div>
+<p>The forward run concentrates score <em>on the cluster and what it
+links onward to</em>; the feeder run concentrates score <em>on what
+points into the cluster</em>. Use the forward view to find the cluster’s
+authorities, the feeder view to find its hubs.</p>
+</div>
+<div id="where-it-sits-among-the-reverse-direction-tools" class="section level2">
+<h2>Where it sits among the reverse-direction tools</h2>
+<p><code>pagerankr</code> has three ways to look “backward” along links;
+pick by what you need:</p>
+<ul>
+<li><strong><code>pagerank(reverse = TRUE)</code></strong> —
+<em>global</em> outflow centrality (the inverse / CheiRank-style
+PageRank). “Which pages funnel authority outward <em>anywhere</em> on
+the site.” No cluster bias.</li>
+<li><strong><code>topic_feeder_pagerank()</code></strong> — the same
+idea, <strong>biased to a cluster</strong>: not “good hub in general”
+but “good hub <em>for the AI-Agent cluster</em>”. This is the one you
+want for the question at the top of this vignette.</li>
+<li><strong><code>hits()</code> hubs</strong> — the eigenvector hub
+score (co-computed with authority). An outflow notion too, but with no
+teleport prior and no damped-surfer / dangling handling, so it answers a
+structurally different question.</li>
+</ul>
+</div>
+<div id="notes" class="section level2">
+<h2>Notes</h2>
+<ul>
+<li>Seed weights are an <strong>additive feeder budget</strong>: if two
+seed URLs fold onto the same vertex (redirect or canonical variants),
+their weights sum — consistent with the prior contract in
+<code>pagerank()</code> and <code>align_prior_to_vertices()</code>.</li>
+<li>Everything <code>pagerank()</code> accepts flows through
+<code>...</code>: redirects, canonicals, URL cleaning, domain/host
+filtering, edge weights, and duplicate-edge policy. Cluster seeds are
+canonicalized and folded into the same vertex namespace as the edges
+before alignment.</li>
+<li>Because the graph is always reversed, the forward-flow devices
+<code>pagerank()</code> rejects under <code>reverse = TRUE</code>
+(<code>nofollow_action = &quot;evaporate&quot;</code>,
+<code>indexability_df</code>) are unavailable here too — use
+<code>nofollow_action = &quot;drop&quot;</code>, the correct treatment of a
+nofollowed link for outflow. ```</li>
+</ul>
+</div>
+
+
+
+<!-- code folding -->
+
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>

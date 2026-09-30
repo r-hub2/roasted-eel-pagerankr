@@ -1,0 +1,948 @@
+---
+title: "Using the pagerankr Package"
+author: "Bart Turczynski"
+date: "`r Sys.Date()`"
+output:
+  rmarkdown::html_vignette:
+    toc: true
+vignette: >
+  %\VignetteIndexEntry{Using the pagerankr Package}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+library(pagerankr)
+```
+
+## Introduction
+
+The `pagerankr` package provides an SEO-focused toolkit for calculating,
+comparing, and analyzing PageRank scores from web crawl data. It handles
+the full pipeline from raw crawl exports (edge lists, redirect reports,
+nofollow annotations, indexability status) to actionable insights.
+
+The package offers:
+
+- **`pagerank()`** -- end-to-end wrapper for quick calculations
+- **Modular functions** -- for granular control over each pipeline step
+- **Model comparison** -- grid search, diff, and distribution metrics
+- **What-if simulation** -- test link/redirect changes before production
+
+All data manipulation uses base R. `igraph` powers the PageRank algorithm
+and graph-based redirect resolution. `rurl` handles URL canonicalization.
+
+## Installation
+
+```r
+# install.packages("devtools")
+devtools::install_gitlab("bart-turczynski/pagerankr")
+```
+
+```{r load_package}
+library(pagerankr)
+```
+
+## Quick Start
+
+```{r quick_start}
+edges <- data.frame(
+  from = c(
+    "example.com/home", "example.com/about",
+    "example.com/blog", "example.com/blog"
+  ),
+  to = c(
+    "example.com/about", "example.com/home",
+    "example.com/home", "example.com/about"
+  )
+)
+
+pr <- pagerank(edges)
+print(pr)
+```
+
+## Screaming Frog crawl exports
+
+`pagerankr` can score a Screaming Frog crawl directly when you export:
+
+- **Internal: All** for node facts, redirects, canonicals, and indexability.
+- **All Inlinks** or **All Outlinks** for link observations.
+
+The package keeps those contracts separate. Internal: All is node-only and is
+never treated as an edge list. The link export preserves raw observations, but
+only `Type == "Hyperlink"` rows with valid source and destination become graph
+edges. Resource, canonical, hreflang, and other link-row types stay available
+through import diagnostics.
+
+```{r screaming_frog_example, eval = FALSE}
+bundle <- screaming_frog_bundle(
+  internal = "internal_all.csv",
+  links = "all_outlinks.csv",
+  link_export_kind = "all_outlinks"
+)
+
+pr <- pagerank_screaming_frog(bundle)
+
+summary(bundle)
+attr(pr, "screaming_frog_import")
+attr(pr, "transition_audit")
+```
+
+By default, all graph-eligible Hyperlink edges are scored. HTML/rendered origin
+filtering, placement selection, and placement-derived weights are opt-in
+scoring policy:
+
+```{r screaming_frog_policy, eval = FALSE}
+pagerank_screaming_frog(
+  bundle,
+  accepted_placements = c("nav", "content"),
+  link_origins = c("html", "html_rendered"),
+  placement_weights = c(nav = 2, content = 1)
+)
+```
+
+Placement is not a Screaming Frog concept: `accepted_placements` and
+`placement_weights` are `pagerank()` arguments, and the wrapper only supplies
+the bundle's normalized placement column. Any crawler that reports link regions
+can drive the same weighting by naming its own column, using the shared
+vocabulary `"content"`, `"nav"`, `"header"`, `"footer"`, `"aside"`:
+
+```{r placement_generic, eval = FALSE}
+pagerank(
+  edges,
+  placement_col = "region",
+  placement_weights = c(
+    content = 1, nav = 0.1, header = 0.1, footer = 0.1, aside = 0.1
+  )
+)
+```
+
+Note that regions are *downweighted*, not dropped. Filtering nav out changes
+the graph's shape — pages reachable only through nav become teleport-only —
+whereas a small weight leaves the topology intact and merely stops nav
+dominating, which on a real crawl it usually does.
+
+For large crawls, the import adapters read only the columns used by the stable
+contract. If an export is degraded, missing optional columns become typed `NA`
+values and are reported in diagnostics; missing required columns error early.
+The bundle provenance includes detected column aliases and contract version, so
+production pipelines should pin the expected `contract_version`.
+
+## Redirect Resolution
+
+### Basic redirect handling
+
+```{r redirects_basic}
+edges <- data.frame(
+  from = c("A", "B", "C"),
+  to = c("B", "C", "D")
+)
+redirects <- data.frame(
+  from = c("B", "C"),
+  to = c("B_new", "C_new")
+)
+
+# resolve_redirects() applies redirect rules to an edge list
+resolved <- resolve_redirects(edges, redirects)
+print(resolved)
+```
+
+Redirect chains are resolved transitively: if A redirects to B and B
+redirects to C, then A resolves to C.
+
+### Conflicting redirects
+
+Crawl data often has the same URL redirecting to different targets.
+Use `duplicate_from_policy` to control the behavior:
+
+```{r redirects_conflict}
+redirects_conflict <- data.frame(
+  from = c("old", "old", "old"),
+  to = c("target_A", "target_B", "target_B")
+)
+
+# "most_frequent" picks the most common target
+edges_simple <- data.frame(from = "X", to = "old")
+resolve_redirects(edges_simple, redirects_conflict,
+  duplicate_from_policy = "most_frequent"
+)
+```
+
+Available policies: `strict` (default, errors on conflict), `first_wins`,
+`last_wins`, `most_frequent`, `prune_source`, `resolve_if_consistent`.
+
+### Redirect loops
+
+Redirect cycles (A -> B -> C -> A) are detected via strongly connected
+components. Use `loop_handling` to control behavior:
+
+```{r redirects_loops}
+edges_loop <- data.frame(from = "X", to = "A")
+redirects_loop <- data.frame(
+  from = c("A", "B", "C", "D"),
+  to = c("B", "C", "A", "E")
+)
+
+# "prune_loop" removes cycle edges; linear redirects still work
+resolved <- resolve_redirects(edges_loop, redirects_loop,
+  loop_handling = "prune_loop"
+)
+print(resolved)
+```
+
+Available policies: `error` (default), `prune_loop`, `break_arrow`
+(keeps the highest in-degree node as sink).
+
+### Standalone link resolution
+
+Use `resolve_links()` to apply redirects and deduplicate without
+computing PageRank -- useful for inspecting the resolved graph:
+
+```{r resolve_links_example}
+edges <- data.frame(
+  from = c("A", "A", "B"),
+  to = c("B", "B", "C")
+)
+redirects <- data.frame(from = "B", to = "B_final")
+
+resolve_links(edges, redirects, clean_urls = FALSE)
+```
+
+## Nofollow Handling
+
+`pagerankr` provides three explicit propagation policies for links marked
+nofollow:
+
+- `"evaporate"` (the default) keeps each nofollow link as an outgoing slot.
+  It consumes its weighted share of the source page's budget, but that share
+  reaches a sink rather than the target.
+- `"drop"` removes nofollow links before allocating the outgoing budget. They
+  consume no slots, and followed links divide the full budget.
+- `"keep"` follows the links normally, so their targets receive their shares.
+
+These are package modeling choices; they are not claims about a search
+engine's current implementation.
+
+```{r nofollow}
+edges <- data.frame(
+  from = c("Hub", "Hub", "Hub"),
+  to = c("A", "B", "C"),
+  nofollow = c(FALSE, FALSE, TRUE)
+)
+
+# "evaporate": PR splits 3 ways, C's share vanishes
+pr_evap <- pagerank(edges,
+  nofollow_col = "nofollow",
+  nofollow_action = "evaporate",
+  clean_edge_urls = FALSE
+)
+print(pr_evap)
+
+# "drop": nofollow edges removed, PR splits only among followed links
+pr_drop <- pagerank(edges,
+  nofollow_col = "nofollow",
+  nofollow_action = "drop",
+  clean_edge_urls = FALSE
+)
+print(pr_drop)
+```
+
+## Indexability
+
+### noindex pages
+
+`pagerankr` assumes that the ranked corpus consists of indexed documents.
+Under this indexed-corpus assumption, a `noindex` page is outside the ranked
+corpus. It may receive authority through inlinks, but cannot redistribute that
+authority within the indexed graph. The package therefore routes its outgoing
+budget to the shared waste sink — the same mechanism used for robots-blocked
+and response-dead (4xx/5xx) pages. This is independent of `nofollow_action`,
+which governs only real `rel=nofollow` edges.
+
+This is strictly a `pagerankr` PageRank assumption. It does not mean that
+Google or another search engine defines `noindex` as an explicit nofollow
+directive. A noindex page can remain visible in the result to make its received
+authority auditable; hiding it would be an optional reporting choice, not a
+change required for correct propagation under this model.
+
+```{r indexability_noindex}
+edges <- data.frame(
+  from = c("Home", "NoindexPage", "NoindexPage"),
+  to = c("NoindexPage", "A", "B")
+)
+
+idx_status <- data.frame(
+  url = "NoindexPage",
+  indexability_status = "noindex"
+)
+
+pr <- pagerank(edges,
+  indexability_df = idx_status,
+  clean_edge_urls = FALSE
+)
+print(pr)
+```
+
+### robots.txt blocked pages
+
+A robots.txt-blocked page receives inbound PageRank but cannot pass it
+outbound (Google can't see the links). Its outgoing budget routes to the
+shared waste sink; `robots_blocked_action` controls only whether the page is
+shown or removed:
+
+```{r indexability_robots}
+edges <- data.frame(
+  from = c("Home", "Blocked", "A"),
+  to = c("Blocked", "A", "Home")
+)
+
+idx_status <- data.frame(
+  url = "Blocked",
+  indexability_status = "Blocked by robots.txt"
+)
+
+# "show" (default): blocked page is shown with the authority it collects
+pr_show <- pagerank(edges,
+  indexability_df = idx_status,
+  robots_blocked_action = "show",
+  clean_edge_urls = FALSE
+)
+print(pr_show)
+
+# "vanish": blocked page removed from results (its own mass booked as hidden)
+pr_vanish <- pagerank(edges,
+  indexability_df = idx_status,
+  robots_blocked_action = "vanish",
+  clean_edge_urls = FALSE
+)
+print(pr_vanish)
+```
+
+The `page_state` column (present whenever `indexability_df` or `status_df` is
+supplied) tags each visible page as `live`, `noindex`, `robots_blocked`, or
+`response_dead`, so the wasted-mass class is attributable per URL.
+
+## Weighted Edges
+
+Pass a `weight_col` to use link weights (e.g., number of links, link
+position scores) in the PageRank calculation:
+
+```{r weighted}
+edges <- data.frame(
+  from = c("A", "A", "B"),
+  to = c("B", "C", "C"),
+  weight = c(3, 1, 1)
+)
+
+pr <- pagerank(edges, weight_col = "weight", clean_edge_urls = FALSE)
+print(pr)
+```
+
+Duplicate `from -> to` rows are a separate modeling choice. By default,
+`pagerank()` uses `duplicate_edge_policy = "collapse"`: repeated links from one
+source page to the same destination become one binary destination edge, matching
+the common textbook PageRank convention and preserving legacy results. Use
+`duplicate_edge_policy = "aggregate"` when duplicate rows carry additive
+weights that should be summed, or `"count_instances"` when each repeated link
+slot should increase the transition probability to that target.
+
+## Domain Filtering
+
+`filter_links_by_domain()` scopes edge lists by domain, useful for
+separating internal vs. external links:
+```{r domain_filter}
+edges <- data.frame(
+  from = c(
+    "example.com/a", "example.com/b",
+    "other.com/c"
+  ),
+  to = c(
+    "example.com/b", "other.com/d",
+    "example.com/a"
+  )
+)
+
+# Keep only internal links
+internal <- filter_links_by_domain(edges, keep_domains = "example.com")
+print(internal)
+```
+
+## HITS hub and authority
+
+`hits()` computes Kleinberg's HITS hub and authority scores over the *same*
+cleaned, redirect/canonical-folded, domain-filtered, deduplicated link graph as
+`pagerank()`. Because both share the identity pipeline, you can join hub,
+authority, and PageRank on `node_name` directly.
+
+The two scores reinforce each other: a good **authority** is pointed to by good
+**hubs**, and a good hub points to good authorities. Formally, with adjacency
+matrix `A`, authority is the dominant eigenvector of `A^T A` and hub is the
+dominant eigenvector of `A A^T`.
+
+```{r hits}
+edges <- data.frame(
+  from = c("A", "A", "B"),
+  to = c("B", "C", "C")
+)
+
+# A only points out (pure hub); C is only pointed to (pure authority).
+hits(edges, clean_edge_urls = FALSE)
+```
+
+Scores are scaled so each maximum is `1` (`scale = TRUE`, the conventional HITS
+reporting). HITS already captures both directions of authority flow, so there
+is no `reverse` flag, and the PageRank-only forward-flow devices (nofollow
+evaporation, indexability transforms, the TIPR teleport prior) are not exposed.
+
+**Whole-graph caveat.** Kleinberg's original HITS ran on a small, query-focused
+base set of pages. `hits()` runs on the full (or domain-filtered) site graph
+`pagerankr` assembles, so treat the scores as site-wide structural
+centralities rather than query-relevance scores.
+
+## SALSA hub and authority
+
+`salsa()` computes Lempel & Moran's (2001) SALSA hub and authority scores over
+the *same* identity pipeline as `pagerank()` and `hits()`, so all three join on
+`node_name`. SALSA is the **stochastic** cousin of HITS: it replaces the
+mutual-reinforcement iteration with two random walks on the bipartite
+hub/authority graph, so the scores are stationary distributions rather than the
+dominant eigenvectors HITS returns. On a connected graph this collapses to a
+degree-based closed form — authority `= d_in / W`, hub `= d_out / W`, where `W`
+is the edge count — so no eigenvector iteration is needed.
+
+```{r salsa}
+edges <- data.frame(
+  from = c("A", "A", "B"),
+  to = c("B", "C", "C")
+)
+
+# A only points out (pure hub); C is only pointed to (pure authority).
+salsa(edges, clean_edge_urls = FALSE)
+```
+
+Each side is a probability distribution that sums to `1`. When the graph splits
+into several weakly connected components, each component's scores are
+renormalized within the component and then reweighted by that component's share
+of the side (Lempel & Moran 2001, Proposition 6) — required so scores stay
+comparable across orphan page clusters.
+
+**Coverage differs from PageRank.** The hub side holds only pages with outlinks
+and the authority side only pages with inlinks, so `hub` is `NA` for a pure
+sink and `authority` is `NA` for a pure source (an isolate is `NA` for both).
+v1 is unweighted; like `hits()` the forward-flow devices (nofollow,
+indexability, the TIPR prior, `reverse`) are not exposed. As with `hits()`,
+these are site-wide structural centralities, a documented site-graph adaptation
+of the original focused-subgraph algorithm.
+
+## Model Comparison
+
+### Comparing two models
+
+```{r compare}
+edges <- data.frame(
+  from = c("A", "B", "C", "D"),
+  to = c("B", "C", "D", "A")
+)
+
+pr_85 <- pagerank(edges, damping = 0.85, clean_edge_urls = FALSE)
+pr_90 <- pagerank(edges, damping = 0.90, clean_edge_urls = FALSE)
+
+diff <- compare_pagerank(pr_85, pr_90, label_a = "d=0.85", label_b = "d=0.90")
+print(diff)
+cat("\nCorrelation summary:\n")
+print(attr(diff, "summary"))
+```
+
+### Parameter grid search
+
+Run PageRank across multiple parameter combinations to find the most
+informative model:
+
+```{r grid}
+edges <- data.frame(
+  from = c("A", "A", "B", "C"),
+  to = c("B", "C", "C", "A")
+)
+
+grid <- auto_grid(damping = c(0.75, 0.85, 0.95))
+results <- pagerank_grid(edges, params_grid = grid, clean_edge_urls = FALSE)
+
+# Analyze distribution metrics across the grid
+analysis <- analyze_pagerank_grid(results)
+print(analysis)
+```
+
+### Distribution metrics
+
+Standalone metrics for any PageRank vector:
+
+```{r metrics}
+pr <- pagerank(edges, clean_edge_urls = FALSE)
+cat("Gini coefficient:", pr_gini(pr$pagerank), "\n")
+cat("Entropy:", pr_entropy(pr$pagerank), "\n")
+cat("Top-1 share:", pr_top_k_share(pr$pagerank, k = 1), "\n")
+```
+
+## Simulating Changes
+
+A common SEO workflow is asking "what happens to PageRank if I add these
+links, remove those links, or implement these redirects?"
+
+### Adding links
+
+```{r simulate_add_link}
+site_links <- data.frame(
+  from = c("Home", "Home", "About", "Blog"),
+  to = c("About", "Blog", "Home", "Home")
+)
+
+impact <- simulate_changes(
+  site_links,
+  add_links_df = data.frame(
+    from = "Blog", to = "About"
+  ),
+  clean_edge_urls = FALSE
+)
+print(impact)
+```
+
+### Removing links
+
+```{r simulate_remove_link}
+impact_remove <- simulate_changes(
+  site_links,
+  remove_links_df = data.frame(
+    from = "Home", to = "Blog"
+  ),
+  clean_edge_urls = FALSE
+)
+print(impact_remove)
+```
+
+### Simulating redirects
+
+`redirect_urls_df` models a URL-level change: retiring a live page behind a
+redirect. It uses **retire semantics** — the source's own outbound links are
+stripped before folding (an honest 301 has no body), so the target inherits the
+source's *inbound* authority only, never its outlinks. The source then leaves
+the proposed graph. A row for a source also **overrides** any existing redirect
+for it, so repointing an old redirect is a single change.
+
+```{r simulate_redirect}
+# OldPage is live: Blog links to it, and it links out to Home. Retire it
+# behind a 301 to About. Its inbound authority (from Blog) passes to About;
+# its outlink to Home is dropped; OldPage leaves the proposed graph.
+extended_links <- rbind(site_links, data.frame(
+  from = c("Blog", "OldPage"),
+  to = c("OldPage", "Home")
+))
+
+impact_redirect <- simulate_changes(
+  extended_links,
+  redirect_urls_df = data.frame(
+    from = "OldPage", to = "About"
+  ),
+  clean_edge_urls = FALSE
+)
+print(impact_redirect)
+```
+
+The output carries a `node_status` column (`"normal"`, or `"new-target"` for a
+page the changeset introduces) and a change manifest attribute describing what
+was applied:
+
+```{r simulate_redirect_manifest}
+attr(impact_redirect, "manifest")$redirects_applied
+```
+
+Screaming Frog users get the same verbs through
+`simulate_changes_screaming_frog(bundle, ...)`, which reuses the bundle's
+placement, nofollow, redirect, and canonical handling automatically.
+
+### Combined changes
+
+```{r simulate_combined}
+impact_all <- simulate_changes(
+  site_links,
+  add_links_df = data.frame(
+    from = "Blog", to = "About"
+  ),
+  remove_links_df = data.frame(
+    from = "Home", to = "Blog"
+  ),
+  clean_edge_urls = FALSE
+)
+print(impact_all)
+```
+
+All `pagerank()` parameters (damping, nofollow, indexability, etc.) can
+be passed through `simulate_changes()` via `...`.
+
+## Convergence Controls and Damping Stability
+
+### pagerank() convergence controls
+
+`pagerank()` delegates to igraph's PageRank implementation. Two solvers are
+available via the `algo` argument:
+
+- `"prpack"` (default) — exact solver; ignores `eps` and `niter`.
+- `"arpack"` — iterative Arnoldi solver; required whenever you supply `eps` or
+  `niter`. Passing either argument automatically switches the solver.
+
+Key arguments:
+
+| Argument | Meaning |
+|---|---|
+| `algo` | `"prpack"` (default) or `"arpack"` |
+| `eps` | L1 convergence tolerance (maps to ARPACK `options$tol`) |
+| `niter` | Max iterations (maps to ARPACK `options$maxiter`) |
+
+Every result carries a `"convergence"` attribute — a `pagerank_convergence`
+object — that records the solver used, iteration count, and final L1 residual.
+Inspect it with `attr(result, "convergence")` or just `print()` the result.
+
+Rule of thumb for iteration budget: `ceiling(log10(eps) / log10(damping))`
+iterations are needed to reach tolerance `eps` at damping factor `damping`.
+
+### damping_sensitivity() and pagerank_stability()
+
+`damping_sensitivity()` sweeps a vector of damping factors and returns one
+PageRank result per alpha:
+
+```r
+damping_sensitivity(edge_list_df, alphas = c(0.75, 0.80, 0.85, 0.90, 0.95), ...)
+```
+
+`pagerank_stability()` wraps the sweep into a ready-to-read stability report:
+
+```r
+pagerank_stability(
+  edge_list_df,
+  alphas     = c(0.75, 0.80, 0.85, 0.90, 0.95),
+  reference  = 0.85,
+  top_k      = 10,
+  ...
+)
+```
+
+It returns a data frame with one row per alpha and two comparison columns
+relative to the reference run:
+
+- `spearman_rho` — rank-order correlation across all URLs.
+- `top_k_overlap` — fraction of the top-`k` URLs shared with the reference.
+
+The raw per-(url, alpha) scores are available via `attr(stab, "sensitivity")`.
+
+### Worked example
+
+```{r convergence_stability}
+toy_edges <- data.frame(
+  from = c("A", "A", "B", "C", "C", "D", "E", "F"),
+  to   = c("B", "C", "D", "D", "E", "F", "A", "A")
+)
+
+# Stability report: how sensitive are ranks to damping?
+stab <- pagerank_stability(
+  toy_edges,
+  alphas            = c(0.75, 0.80, 0.85, 0.90, 0.95),
+  reference         = 0.85,
+  top_k             = 4,
+  clean_edge_urls   = FALSE
+)
+print(stab)
+
+# Drill into raw per-(url, alpha) scores
+head(attr(stab, "sensitivity"))
+```
+
+At `alpha` values close to the reference the `spearman_rho` and `top_k_overlap`
+columns will be near 1; larger deviations flag URLs whose importance is
+damping-sensitive.
+
+## Topic-Sensitive PageRank
+
+Standard PageRank treats every page as an equally likely teleport target.
+Topic-Sensitive PageRank (Haveliwala 2002, adapted here to a site graph)
+replaces that uniform prior with a cluster-biased one: the random surfer
+teleports only to pages that belong to a predefined topic cluster.  The
+result is a family of per-topic authority scores — each score answers "how
+important is this page *for visitors who care about topic X*?" — plus a
+blended aggregate that weight-averages the individual topic vectors.
+
+`topic_sensitive_pagerank()` is pure orchestration: it runs `pagerank()`
+once per topic with the appropriate seeded prior, then blends the results.
+Topic membership is supplied by the caller; it is never inferred from
+content.
+
+**Signature**
+
+```r
+topic_sensitive_pagerank(
+  edge_list_df,
+  topics,
+  topic_weights      = NULL,
+  topic_url_col      = "url",
+  topic_weight_col   = "weight",
+  ...
+)
+```
+
+`topics` is a **named list**.  Each element is either a character vector of
+seed URLs (equal-weight prior) or a data frame with URL and weight columns
+(custom prior).
+
+### Worked example
+
+```{r tspr_example}
+library(pagerankr)
+
+# Small synthetic site: 7 pages, two rough topic clusters
+edges <- data.frame(
+  from = c("Home", "Home", "Blog", "Blog", "Shop", "Shop", "Docs"),
+  to   = c("Blog", "Shop", "Post1", "Post2", "Item1", "Item2", "Guide1")
+)
+
+# Define two topics as named lists of seed URL vectors
+topics <- list(
+  content = c("Blog", "Post1", "Post2"),
+  commerce = c("Shop", "Item1", "Item2")
+)
+
+tspr <- topic_sensitive_pagerank(
+  edge_list_df    = edges,
+  topics          = topics,
+  clean_edge_urls = FALSE
+)
+
+print(tspr)
+```
+
+The returned data frame has one row per node and three score columns:
+`content`, `commerce`, and `blended`.
+
+```{r tspr_columns}
+# Per-topic scores
+tspr[, c("node_name", "content", "commerce")]
+
+# Blended (equal topic weights by default)
+tspr[, c("node_name", "blended")]
+```
+
+### Distinguishing related functions
+
+**`topic_feeder_pagerank()`** answers the complementary question: which
+pages *outside* a cluster send the most PageRank authority *into* it?
+It operates on the reverse graph and seeds the teleport prior on the cluster
+itself.  Use it when you want to find upstream link-building opportunities.
+See `vignette("topic_feeder_pagerank")` for a full walkthrough.
+
+**`trustrank()`** is the unipolar variant: a single "trusted" seed set
+replaces the topic list, and there is no blending step.  See
+`vignette("trustrank")`.
+
+## GA4 Behavioral Transitions
+
+GA4 event data captures how real users move through your site. The three
+functions in this section let you convert those signals into PageRank inputs
+without requiring a BigQuery connection — a synthetic events data frame is
+sufficient for local development.
+
+### Building transition counts with `ga4_page_transitions()`
+
+`ga4_page_transitions()` walks each user-session in chronological order and
+emits one row per consecutive page-view pair. The result is a **transition
+signal** (observed navigation behavior), not a link-click signal, so it
+reflects where users actually go rather than where crawlable anchor tags point.
+
+```{r ga4_transitions}
+library(pagerankr)
+
+# Minimal synthetic GA4 events data frame (no BigQuery required)
+events <- data.frame(
+  user_pseudo_id  = c("u1", "u1", "u1", "u2", "u2"),
+  ga_session_id   = c(1L,   1L,   1L,   2L,   2L),
+  page_location   = c("/home", "/blog", "/contact", "/home", "/pricing"),
+  event_timestamp = c(1000L,  2000L,  3000L,  1000L,  2000L)
+)
+
+transitions <- ga4_page_transitions(
+  events,
+  user_id_col   = "user_pseudo_id",
+  session_id_col = "ga_session_id",
+  page_col       = "page_location",
+  timestamp_col  = "event_timestamp"
+)
+print(transitions)
+# Returns a data frame with columns: from, to, n
+```
+
+### Smoothing sparse transitions with `smooth_transitions()`
+
+Observed transition counts are often sparse — many source pages have very few
+sessions, making raw empirical shares unreliable. `smooth_transitions()` applies
+per-source Dirichlet smoothing toward a structural (crawl-graph) prior:
+
+```
+lambda_i = n_i / (n_i + k)
+```
+
+where `n_i` is the total outgoing transition count from source `i` and `k`
+controls how quickly low-traffic sources lean on the prior. Sources with fewer
+than `min_support` total outgoing transitions receive full prior weight
+(`lambda_i = 0`).
+
+```{r smooth_transitions_example}
+# Build a minimal structural prior from the same pages
+structural <- data.frame(
+  from = c("/home",    "/home",    "/blog"),
+  to   = c("/blog",   "/pricing", "/contact"),
+  n    = c(50L,        30L,        40L)
+)
+
+smoothed <- smooth_transitions(
+  empirical_df   = transitions,
+  structural_df  = structural,
+  k              = 10,
+  min_support    = 5,
+  count_col      = "n",
+  from_col       = "from",
+  to_col         = "to",
+  prob_col       = "prob"
+)
+print(smoothed)
+# empirical_df augmented with a `prob` column: smoothed per-source
+# transition probabilities (each source sums to 1)
+```
+
+### Converting entrances to a teleport vector with `ga4_entrance_teleport()`
+
+`ga4_entrance_teleport()` turns landing-page entrance counts into a `prior_df`
+suitable for `pagerank(prior_df = ...)`. This provides a **proxy for external
+authority**: pages users enter from search or direct traffic receive a higher
+reset probability during the random-surfer teleport step.
+
+> **Note:** entrance counts are not equivalent to backlink authority — they
+> reflect observed user entry points, not link equity from external domains.
+
+```{r ga4_teleport}
+entrances <- data.frame(
+  page_location = c("/home", "/blog", "/pricing", "/contact"),
+  entrances     = c(120L,    80L,     40L,         10L)
+)
+
+prior <- ga4_entrance_teleport(
+  entrances_df   = entrances,
+  url_col        = "page_location",
+  entrances_col  = "entrances",
+  vertex_names   = NULL
+)
+print(prior)
+# Returns: url + weight data frame, ready for pagerank(prior_df = .)
+```
+
+### End-to-end example
+
+Combine all three steps: raw events → transition counts → smoothing → PageRank.
+
+```{r ga4_end_to_end}
+# 1. Extract transitions from synthetic events
+trans <- ga4_page_transitions(
+  events,
+  user_id_col    = "user_pseudo_id",
+  session_id_col = "ga_session_id",
+  page_col       = "page_location",
+  timestamp_col  = "event_timestamp"
+)
+
+# 2. Smooth against the structural prior
+sm <- smooth_transitions(
+  empirical_df  = trans,
+  structural_df = structural,
+  k             = 10,
+  min_support   = 2,
+  prob_col      = "prob"
+)
+
+# 3. Run PageRank using smoothed probabilities as edge weights
+pr <- pagerank(
+  sm,
+  edge_from_col  = "from",
+  edge_to_col    = "to",
+  weight_col     = "prob",
+  clean_edge_urls = FALSE
+)
+print(pr)
+```
+
+`clean_edge_urls = FALSE` is used throughout because the synthetic URLs are
+already normalized; set it to `TRUE` when feeding real GA4 `page_location`
+values that may contain query strings or fragments.
+
+## Function Reference
+
+| Function | Purpose |
+|---|---|
+| `pagerank()` | End-to-end: clean, resolve, compute |
+| `hits()` | End-to-end HITS hub + authority on the same graph |
+| `compute_hits()` | Low-level igraph HITS wrapper |
+| `salsa()` | End-to-end SALSA hub + authority on the same graph |
+| `compute_salsa()` | Low-level SALSA computational core |
+| `resolve_links()` | Resolve redirects + deduplicate (no PR) |
+| `simulate_changes()` | What-if: compare baseline vs. proposed |
+| `compare_pagerank()` | Diff two PR results with rank shifts |
+| `pagerank_grid()` | Run PR across parameter combinations |
+| `auto_grid()` | Generate parameter grid |
+| `analyze_pagerank_grid()` | Distribution metrics across a grid |
+| `filter_links_by_domain()` | Scope edges by domain |
+| `resolve_redirects()` | Apply redirects to an edge list |
+| `clean_url_columns()` | Canonicalize URLs |
+| `get_unique_edges()` | Deduplicate, handle self-loops |
+| `drop_isolates()` | Include/exclude disconnected nodes |
+| `compute_pagerank()` | Low-level igraph PR wrapper |
+| `pr_gini()` | Gini coefficient of PR distribution |
+| `pr_entropy()` | Entropy of PR distribution |
+| `pr_top_k_share()` | Top-k concentration of PR |
+| `damping_sensitivity()` | Sweep PageRank across a range of damping factors |
+| `pagerank_stability()` | Alpha-stability report: rank correlation across damping grid |
+| `topic_sensitive_pagerank()` | Per-topic personalized PageRank with blended scores |
+| `topic_feeder_pagerank()` | Reverse-graph seeded PageRank: find pages that feed a target cluster |
+| `trustrank()` | TrustRank: seed-biased PageRank from a trusted seed set |
+| `seed_prior()` | Build a teleport prior concentrated on seed URLs (shared by trustrank and topic_feeder_pagerank) |
+| `align_prior_to_vertices()` | Align a prior/teleport weight data frame to the graph vertex set |
+| `ga4_entrance_teleport()` | Entrance/landing-page counts as a teleport (reset) vector |
+| `ga4_page_transitions()` | Consecutive-page-view transition counts from a GA4 BigQuery export |
+| `smooth_transitions()` | Shrink sparse empirical transition shares toward structural prior |
+| `transform_edge_weights()` | Per-source grouped edge weight transforms (emits transition_probability) |
+| `transform_weights()` | Apply rank/log/zipf/percentile transforms to a numeric vector |
+| `validate_edge_weights()` | Validate per-source weight totals and warn on anomalies |
+| `screaming_frog_bundle()` | Compose Screaming Frog Internal:All + All Inlinks/Outlinks into a bundle |
+| `screaming_frog_internal()` | Import Screaming Frog Internal: All export |
+| `screaming_frog_links()` | Import Screaming Frog All Inlinks / All Outlinks export |
+| `pagerank_screaming_frog()` | Score a screaming_frog_bundle via pagerank() |
+| `resolve_canonical_urls()` | Resolve a URL vector through rel=canonical folds |
+| `resolve_canonicals()` | Apply rel=canonical folds to an edge list |
+| `resolve_folded_urls()` | Resolve a URL vector through redirects plus canonicals |
+| `resolve_redirect_urls()` | Resolve a URL vector through a redirect map |
+| `build_fold_map()` | Build a URL fold map from redirects and/or canonicals |
+| `audit_canonicals()` | Diagnose rel=canonical fold coverage and conflicts |
+| `audit_fold()` | Diagnose the redirect+canonical URL fold map |
+| `audit_redirects()` | Diagnose redirect chains, loops, and conflicts |
+| `aggregate_edges()` | Aggregate duplicate edges after URL folding with per-column semantics |
+| `export_graph()` | Export graph + PageRank in graphml / dot / edgelist / pajek formats |
+| `launch_pagerank_explorer()` | Launch the interactive Shiny PageRank explorer |
+
+## Acknowledgments
+
+`pagerankr` wraps [igraph](https://github.com/igraph/igraph)'s PageRank and
+HITS engines and implements a body of link-analysis research directly — PageRank
+(Brin & Page), HITS (Kleinberg), SALSA (Lempel & Moran), TrustRank (Gyöngyi,
+Garcia-Molina & Pedersen), and Topic-Sensitive PageRank (Haveliwala). URL
+handling is delegated to the sibling `rurl` package.
+
+The full list of credits — prior art, dependencies, the research this code
+implements, and the data sources it serves — is in
+[`ACKNOWLEDGMENTS.md`](https://gitlab.com/bart-turczynski/pagerankr/-/blob/main/ACKNOWLEDGMENTS.md).

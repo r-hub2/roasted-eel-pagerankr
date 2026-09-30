@@ -1,0 +1,706 @@
+#' @title Resolve Redirects in an Edge List
+#' @description Updates an edge list by replacing URLs with their final
+#'   destinations based on a redirect data frame. Handles redirect chains,
+#'   detects cycles, and resolves conflicting redirects using configurable
+#'   policies.
+#'
+#' @param edge_list_df A data frame representing the edge list.
+#' @param redirects_df A data frame containing redirect rules, with 'from' and
+#'   'to' columns specifying the source and target of a redirect.
+#' @param edge_from_col Character, the name of the column in `edge_list_df`
+#'   containing source URLs. Default "from".
+#' @param edge_to_col Character, the name of the column in `edge_list_df`
+#'   containing target URLs. Default "to".
+#' @param redirect_from_col Character, the name of the column in `redirects_df`
+#'   containing source URLs of redirects. Default "from".
+#' @param redirect_to_col Character, the name of the column in `redirects_df`
+#'   containing target URLs of redirects. Default "to".
+#' @param duplicate_from_policy Character, how to handle conflicting redirects
+#'   (same source URL mapping to multiple distinct targets). One of:
+#'   \describe{
+#'     \item{"strict"}{(Default) Error on any conflict.}
+#'     \item{"first_wins"}{Keep the first occurrence for each conflicting
+#'       source.}
+#'     \item{"last_wins"}{Keep the last occurrence for each conflicting source.}
+#'     \item{"most_frequent"}{Keep the most common target. Ties broken by first
+#'       occurrence.}
+#'     \item{"prune_source"}{Remove ALL redirects from any conflicting source.}
+#'     \item{"resolve_if_consistent"}{Allow exact duplicates; error only on
+#'       true conflicts where targets differ.}
+#'   }
+#' @param loop_handling Character, how to handle redirect cycles (loops).
+#'   One of:
+#'   \describe{
+#'     \item{"error"}{(Default) Error when a redirect cycle is detected.}
+#'     \item{"prune_loop"}{Remove all edges involved in cycles. URLs in the
+#'       loop remain unresolved (map to themselves).}
+#'     \item{"break_arrow"}{For each cycle, keep the node with the highest
+#'       in-degree as the sink and remove edges pointing away from it within
+#'       the cycle. This preserves as much of the chain as possible.}
+#'   }
+#'
+#' @return An updated `edge_list_df` with URLs in `edge_from_col` and
+#'   `edge_to_col` replaced by their final resolved destinations.
+#' @family edge-list resolvers
+#' @export
+#' @examples
+#' edges <- data.frame(
+#'   from = c("A", "B", "C"),
+#'   to = c("B", "C", "D")
+#' )
+#' redirects <- data.frame(
+#'   from = c("B", "C", "E"),
+#'   to = c("B_final", "C_final", "E_final")
+#' )
+#' resolve_redirects(edges, redirects)
+#'
+#' # Example with a redirect chain
+#' edges_chain <- data.frame(from = "X", to = "Y")
+#' redirects_chain <- data.frame(
+#'   from = c("Y", "Z"),
+#'   to = c("Z", "Z_final")
+#' )
+#' resolve_redirects(edges_chain, redirects_chain)
+#'
+#' # Example with conflicting redirects resolved via first_wins
+#' edges_conflict <- data.frame(
+#'   from = "A", to = "B"
+#' )
+#' redirects_conflict <- data.frame(
+#'   from = c("B", "B"),
+#'   to = c("C", "D")
+#' )
+#' resolve_redirects(edges_conflict, redirects_conflict,
+#'   duplicate_from_policy = "first_wins"
+#' )
+#'
+#' # Example with different column names
+#' edges_custom <- data.frame(
+#'   source_url = "Page1", target_url = "Page2"
+#' )
+#' redirects_custom <- data.frame(
+#'   original = "Page2", final = "Page2_resolved"
+#' )
+#' resolve_redirects(edges_custom, redirects_custom,
+#'   edge_from_col = "source_url",
+#'   edge_to_col = "target_url",
+#'   redirect_from_col = "original",
+#'   redirect_to_col = "final"
+#' )
+#' @details
+#' Self-referencing redirects (where from == to) and any redirects with NA
+#' in from or to are automatically filtered out before processing.
+#'
+#' When crawl data contains conflicting redirects (the same URL redirecting
+#' to different targets), use \code{duplicate_from_policy} to control the
+#' behavior. The default \code{"strict"} preserves backward compatibility
+#' by erroring on any conflict.
+#'
+#' Redirect resolution uses a graph-based approach: an igraph is built from
+#' the redirect rules, strongly connected components (SCCs) are used to
+#' detect loops, and the \code{loop_handling} policy determines what happens
+#' to cycles. After loop handling, each URL is mapped to its terminal
+#' destination by traversing the acyclic graph.
+
+resolve_redirects <- function(edge_list_df,
+                              redirects_df,
+                              edge_from_col = "from",
+                              edge_to_col = "to",
+                              redirect_from_col = "from",
+                              redirect_to_col = "to",
+                              duplicate_from_policy = c(
+                                "strict",
+                                "first_wins",
+                                "last_wins",
+                                "most_frequent",
+                                "prune_source",
+                                "resolve_if_consistent"
+                              ),
+                              loop_handling = c(
+                                "error",
+                                "prune_loop",
+                                "break_arrow"
+                              )) {
+  duplicate_from_policy <- match.arg(duplicate_from_policy)
+  loop_handling <- match.arg(loop_handling)
+
+  # --- Input Validation ---
+  .validate_redirect_inputs(
+    edge_list_df, redirects_df,
+    edge_from_col, edge_to_col, redirect_from_col, redirect_to_col
+  )
+
+  # If redirects_df is empty or has no valid rules, return edge_list_df as is.
+  if (nrow(redirects_df) == 0) {
+    return(edge_list_df)
+  }
+
+  # Filter out NA values and self-referencing redirects (from == to).
+  redirects_df <- .clean_redirect_pairs(
+    redirects_df, redirect_from_col, redirect_to_col
+  )
+
+  # --- Preprocess: handle conflicting redirects ---
+  redirect_sources <- as.character(redirects_df[[redirect_from_col]])
+  redirect_targets <- as.character(redirects_df[[redirect_to_col]])
+
+  valid_redirect_indices <- !is.na(redirect_sources) & !is.na(redirect_targets)
+  redirect_sources <- redirect_sources[valid_redirect_indices]
+  redirect_targets <- redirect_targets[valid_redirect_indices]
+
+  if (length(redirect_sources) == 0) {
+    return(edge_list_df)
+  }
+
+  # --- Build canonical redirect map via the neutral signal-agnostic builder ---
+  canonical_map <- .build_terminal_map(
+    redirect_sources, redirect_targets,
+    duplicate_from_policy = duplicate_from_policy,
+    loop_handling = loop_handling
+  )
+
+  if (length(canonical_map) == 0) {
+    return(edge_list_df)
+  }
+
+  # --- Apply map to edge list (vectorized) ---
+  .apply_map_to_edges(edge_list_df, canonical_map, edge_from_col, edge_to_col)
+}
+
+
+#' Validate `resolve_redirects()` inputs
+#'
+#' Stops with the original error text if either data frame is malformed or is
+#' missing its required columns. Split into sequential `if` guards (rather than
+#' `&&`-chains) to keep cyclomatic complexity low.
+#' @noRd
+.validate_redirect_inputs <- function(edge_list_df, redirects_df,
+                                      edge_from_col, edge_to_col,
+                                      redirect_from_col, redirect_to_col) {
+  if (!is.data.frame(edge_list_df)) {
+    stop("`edge_list_df` must be a data frame.", call. = FALSE)
+  }
+  if (nrow(edge_list_df) > 0) {
+    if (!all(c(edge_from_col, edge_to_col) %in% names(edge_list_df))) {
+      stop(
+        "`edge_list_df` must have '", edge_from_col, "' and '",
+        edge_to_col, "' columns if not empty.",
+        call. = FALSE
+      )
+    }
+  }
+
+  if (!is.data.frame(redirects_df)) {
+    stop("`redirects_df` must be a data frame.", call. = FALSE)
+  }
+  if (nrow(redirects_df) > 0) {
+    if (!all(c(redirect_from_col, redirect_to_col) %in% names(redirects_df))) {
+      stop("`redirects_df` must have '", redirect_from_col, "' and '",
+        redirect_to_col, "' columns if not empty.",
+        call. = FALSE
+      )
+    }
+  }
+
+  invisible(NULL)
+}
+
+
+#' Drop NA and self-referencing redirect rows
+#'
+#' Removes rows where either endpoint is NA, then removes self-references
+#' (from == to, compared as characters).
+#' @noRd
+.clean_redirect_pairs <- function(redirects_df, redirect_from_col,
+                                  redirect_to_col) {
+  na_mask <- !is.na(redirects_df[[redirect_from_col]]) &
+    !is.na(redirects_df[[redirect_to_col]])
+  redirects_df <- redirects_df[na_mask, , drop = FALSE]
+
+  if (nrow(redirects_df) > 0) {
+    self_ref <- as.character(redirects_df[[redirect_from_col]]) ==
+      as.character(redirects_df[[redirect_to_col]])
+    redirects_df <- redirects_df[!self_ref, , drop = FALSE]
+  }
+
+  redirects_df
+}
+
+
+#' Apply a canonical map to the edge-list source/target columns
+#'
+#' Vectorized replacement of both edge columns (when present) via
+#' [.apply_fold_map()].
+#' @noRd
+.apply_map_to_edges <- function(edge_list_df, canonical_map,
+                                edge_from_col, edge_to_col) {
+  resolved_edge_list <- edge_list_df
+
+  for (col_name in c(edge_from_col, edge_to_col)) {
+    if (col_name %in% names(resolved_edge_list)) {
+      resolved_edge_list[[col_name]] <- .apply_fold_map(
+        resolved_edge_list[[col_name]], canonical_map
+      )
+    }
+  }
+
+  resolved_edge_list
+}
+
+
+# --- Internal: neutral, signal-agnostic terminal-map builder ---
+
+#' Build a terminal fold map from raw (from, to) pairs of any URL signal
+#'
+#' This is the reusable graph machinery shared by redirect resolution and
+#' canonical folding. It is deliberately signal-agnostic: it knows nothing
+#' about whether the pairs are 3xx redirects or declared rel=canonicals. Given
+#' source/target vectors it strips NAs and self-references, applies the chosen
+#' duplicate-source policy via [.preprocess_redirects()], then resolves chains
+#' and cycles to terminal destinations via [.resolve_via_graph()].
+#'
+#' @param from Character vector of source URLs.
+#' @param to Character vector of target URLs.
+#' @param duplicate_from_policy How to handle a source with multiple distinct
+#'   targets. See [resolve_redirects()].
+#' @param loop_handling How to handle cycles. See [resolve_redirects()].
+#' @return A named character vector mapping every reachable source URL to its
+#'   final terminal destination. Entries where a URL maps to itself are
+#'   retained (callers filter via [.apply_fold_map()] / `match()`). Returns an
+#'   empty named vector when there are no effective rules.
+#' @noRd
+.build_terminal_map <- function(from, to,
+                                duplicate_from_policy = "strict",
+                                loop_handling = "error") {
+  from <- as.character(from)
+  to <- as.character(to)
+
+  valid <- !is.na(from) & !is.na(to)
+  from <- from[valid]
+  to <- to[valid]
+
+  if (length(from) == 0) {
+    return(stats::setNames(character(0), character(0)))
+  }
+
+  # Drop self-references (no-op folds, e.g. self-canonicals / self-redirects).
+  self_ref <- from == to
+  from <- from[!self_ref]
+  to <- to[!self_ref]
+
+  if (length(from) == 0) {
+    return(stats::setNames(character(0), character(0)))
+  }
+
+  clean_df <- data.frame(from = from, to = to)
+  clean_df <- .preprocess_redirects(clean_df, "from", "to",
+    policy = duplicate_from_policy
+  )
+
+  if (nrow(clean_df) == 0) {
+    return(stats::setNames(character(0), character(0)))
+  }
+
+  .resolve_via_graph(clean_df$from, clean_df$to, loop_handling = loop_handling)
+}
+
+
+#' Apply a terminal fold map to a vector of URLs
+#'
+#' Replaces each URL with its mapped representative, leaving unmapped URLs and
+#' NAs untouched. Mirrors the vectorized replacement used throughout the
+#' redirect/canonical machinery so edges, priors, and externally reported maps
+#' all fold identically.
+#'
+#' @param urls Character vector (or coercible) of URLs to fold.
+#' @param map Named character vector (source -> representative), e.g. from
+#'   [.build_terminal_map()] or [.compose_fold_map()].
+#' @return Character vector the same length as `urls`, with mapped entries
+#'   replaced and original NAs preserved.
+#' @noRd
+.apply_fold_map <- function(urls, map) {
+  original <- as.character(urls)
+  if (length(map) == 0) {
+    return(original)
+  }
+  idx <- match(original, names(map))
+  resolved <- ifelse(!is.na(idx), unname(map)[idx], original)
+  resolved[is.na(original)] <- NA_character_
+  resolved
+}
+
+
+# --- Internal: graph-based redirect resolution ---
+
+#' Resolve redirects using igraph and SCC-based loop detection
+#'
+#' Builds a directed graph from redirect pairs, detects loops via strongly
+#' connected components, applies the chosen loop_handling policy, then
+#' traverses the resulting DAG to produce a canonical redirect map.
+#'
+#' @param from Character vector of redirect sources.
+#' @param to Character vector of redirect targets.
+#' @param loop_handling One of "error", "prune_loop", "break_arrow".
+#' @return Named character vector mapping every reachable URL to its final
+#'   resolved destination.
+#' @noRd
+.resolve_via_graph <- function(from, to, loop_handling = "error") {
+  # Build redirect graph
+  redirect_edges <- data.frame(from = from, to = to)
+  g <- igraph::graph_from_data_frame(redirect_edges, directed = TRUE)
+
+  # --- Detect loops via SCCs ---
+  scc <- igraph::components(g, mode = "strong")
+  # SCCs of size > 1 are cycles; also check self-loops
+  loop_sccs <- which(scc$csize > 1)
+  self_loop_eids <- which(igraph::which_loop(g))
+  has_self_loops <- length(self_loop_eids) > 0
+  has_loops <- length(loop_sccs) > 0 || has_self_loops
+
+  if (has_loops) {
+    if (loop_handling == "error") {
+      # Report the first cycle found
+      if (length(loop_sccs) > 0) {
+        first_scc_id <- loop_sccs[1]
+        cycle_verts <- igraph::V(g)[scc$membership == first_scc_id]
+        cycle_names <- igraph::V(g)$name[cycle_verts]
+        # Build a readable cycle path
+        cycle_path <- .format_cycle_path(g, cycle_names)
+        stop("Redirect cycle detected: ", cycle_path, call. = FALSE)
+      } else {
+        # Self-loop only
+        sl_ends <- igraph::ends(g, self_loop_eids[1])
+        sl_name <- sl_ends[1, 1]
+        stop("Redirect cycle detected: ", sl_name, " -> ", sl_name,
+          call. = FALSE
+        )
+      }
+    }
+
+    # Remove self-loops first (they should have been filtered, but belt &
+    # suspenders)
+    if (has_self_loops) {
+      g <- igraph::delete_edges(g, self_loop_eids)
+    }
+
+    if (loop_handling == "prune_loop") {
+      g <- .prune_loop_edges(g, scc, loop_sccs)
+    } else if (loop_handling == "break_arrow") {
+      g <- .break_arrow_loops(g, scc, loop_sccs)
+    }
+  }
+
+  # --- Build canonical map by traversing the DAG ---
+  .build_canonical_map(g)
+}
+
+
+#' Format a readable cycle path from SCC vertices
+#' @noRd
+.format_cycle_path <- function(g, cycle_names) {
+  # Walk from the first cycle vertex following edges within the SCC
+  # to produce a readable A -> B -> C -> A path
+  visited <- character(0)
+  current <- cycle_names[1]
+  path <- current
+
+  for (i in seq_along(cycle_names)) {
+    neighbors <- igraph::neighbors(g, current, mode = "out")
+    next_in_cycle <- intersect(igraph::V(g)$name[neighbors], cycle_names)
+    # Pick a neighbor we haven't visited yet, or the first one to close cycle
+    unvisited <- setdiff(next_in_cycle, path)
+    if (length(unvisited) > 0) {
+      current <- unvisited[1]
+      path <- c(path, current)
+    } else if (length(next_in_cycle) > 0) {
+      # Close the cycle
+      path <- c(path, next_in_cycle[1])
+      break
+    } else {
+      break
+    }
+  }
+
+  paste(path, collapse = " -> ")
+}
+
+
+#' Remove all edges within SCC loops
+#' @noRd
+.prune_loop_edges <- function(g, scc, loop_sccs) {
+  for (scc_id in loop_sccs) {
+    loop_verts <- igraph::V(g)[scc$membership == scc_id]
+    loop_names <- igraph::V(g)$name[loop_verts]
+    # Remove all edges where both endpoints are in this SCC
+    edges_to_remove <- igraph::E(g)[.inc(loop_verts)] # nolint
+    # Filter to only edges fully within the SCC (not edges leaving/entering)
+    el <- igraph::ends(g, edges_to_remove)
+    within_scc <- el[, 1] %in% loop_names & el[, 2] %in% loop_names
+    g <- igraph::delete_edges(g, edges_to_remove[within_scc])
+  }
+  g
+}
+
+
+#' Break loops by keeping the highest in-degree node as a sink
+#' @noRd
+.break_arrow_loops <- function(g, scc, loop_sccs) {
+  for (scc_id in loop_sccs) {
+    loop_verts <- igraph::V(g)[scc$membership == scc_id]
+    loop_names <- igraph::V(g)$name[loop_verts]
+
+    # Pick the cycle node with the highest GLOBAL in-degree as the sink -- this
+    # counts inbound edges from outside the cycle too, so the most-redirected-to
+    # page becomes the canonical destination (in a bare cycle every within-cycle
+    # in-degree is 1, so external inbound is the meaningful tie-breaker; ties
+    # fall back to first vertex order). Behavior asserted in
+    # test-resolve_redirects.R "break_arrow with asymmetric in-degree".
+    in_deg <- igraph::degree(g, v = loop_verts, mode = "in")
+    sink_idx <- which.max(in_deg)
+    sink_name <- loop_names[sink_idx]
+
+    # Remove outgoing edges FROM the sink that stay within the SCC
+    out_edges <- igraph::E(g)[.from(igraph::V(g)[sink_name])] # nolint
+    el <- igraph::ends(g, out_edges)
+    within_scc <- el[, 2] %in% loop_names
+    g <- igraph::delete_edges(g, out_edges[within_scc])
+  }
+  g
+}
+
+
+#' Build a canonical URL map by traversing the redirect graph
+#'
+#' For every vertex, follow outgoing edges until a terminal vertex (one with
+#' no outgoing edges in the redirect graph, i.e. a final destination) is
+#' reached. Returns a named vector: source -> final_destination.
+#' @noRd
+.build_canonical_map <- function(g) {
+  vnames <- igraph::V(g)$name
+  n <- length(vnames)
+
+  if (n == 0) {
+    return(stats::setNames(character(0), character(0)))
+  }
+
+  # Pre-compute adjacency for speed: for each vertex, its single out-neighbor
+  # (redirect graphs should have out-degree <= 1 per vertex after dedup)
+  out_list <- igraph::as_adj_list(g, mode = "out")
+
+  # Map vertex names to indices for fast lookup
+  name_to_idx <- stats::setNames(seq_len(n), vnames)
+
+  resolved <- rep(NA_character_, n)
+
+  # Iterative traversal with memoization
+  for (i in seq_len(n)) {
+    if (is.na(resolved[i])) {
+      resolved <- .fold_chain_from(i, resolved, out_list, vnames)
+    }
+  }
+
+  # Return map: only include entries where a redirect actually changes the URL
+  # (source vertices from the original redirect data)
+  canonical <- stats::setNames(resolved, vnames)
+  # Keep all entries -- the caller filters by match()
+  canonical
+}
+
+
+#' Walk one redirect chain to its terminal and fold it into `resolved`
+#'
+#' Follows outgoing edges from `start` (out-degree <= 1 after loop handling)
+#' until reaching an already-resolved node, a terminal node, or -- defensively
+#' -- a re-encountered node (which would indicate a cycle that should be
+#' impossible here). Every visited source in the chain is then set to the
+#' terminal destination. Returns the updated `resolved` vector.
+#' @noRd
+.fold_chain_from <- function(start, resolved, out_list, vnames) {
+  chain <- integer(0)
+  current <- start
+
+  while (TRUE) {
+    if (!is.na(resolved[current])) {
+      # Already resolved: apply to whole chain
+      return(.assign_chain(resolved, chain, resolved[current]))
+    }
+
+    if (current %in% chain) {
+      # Defensive: a cycle reached this traversal, which should be impossible
+      # given the out-degree <= 1 invariant plus loop_handling in
+      # .resolve_via_graph. Break rather than spin forever -- resolve the
+      # chain to the re-encountered node so callers get a usable map instead
+      # of a silent hang. Mirrors the guard in audit_redirects.R's traversal.
+      return(.assign_chain(resolved, chain, vnames[current]))
+    }
+
+    chain <- c(chain, current)
+    out_neighbors <- out_list[[current]]
+    if (length(out_neighbors) == 0) {
+      # Terminal node
+      return(.assign_chain(resolved, chain, vnames[current]))
+    }
+
+    # Follow the first (and ideally only) outgoing edge
+    current <- as.integer(out_neighbors[1])
+  }
+}
+
+
+#' Assign a terminal destination to every index in a redirect chain
+#' @noRd
+.assign_chain <- function(resolved, chain, final) {
+  for (ci in chain) resolved[ci] <- final
+  resolved
+}
+
+
+# --- Internal: preprocess conflicting redirects ---
+
+#' Preprocess redirects to handle conflicting sources
+#'
+#' Given a two-column data frame of (from, to) redirect pairs (already cleaned
+#' of NAs and self-refs), detect conflicting sources and apply the chosen
+#' policy.
+#'
+#' @param redirects_df Data frame with columns named by `from_col` and `to_col`.
+#' @param from_col Character, name of the source column.
+#' @param to_col Character, name of the target column.
+#' @param policy One of "strict", "first_wins", "last_wins", "most_frequent",
+#'   "prune_source", "resolve_if_consistent".
+#' @return A deduplicated data frame where each source maps to exactly one
+#'   target.
+#' @noRd
+.preprocess_redirects <- function(redirects_df, from_col, to_col,
+                                  policy = "strict") {
+  sources <- redirects_df[[from_col]]
+  targets <- redirects_df[[to_col]]
+
+  # --- Detect conflicting sources ---
+  # A source is "conflicting" if it has >1 distinct target
+  src_target_pairs <- paste0(sources, "\t", targets)
+  unique_pairs_df <- redirects_df[!duplicated(src_target_pairs), , drop = FALSE]
+  dup_sources <- unique_pairs_df[[from_col]][
+    duplicated(unique_pairs_df[[from_col]])
+  ]
+  conflicting_sources <- unique(dup_sources)
+
+  # No conflicts: just deduplicate exact duplicates and return
+
+  if (length(conflicting_sources) == 0) {
+    return(unique_pairs_df)
+  }
+
+  # --- Apply policy ---
+  .apply_redirect_conflict_policy(
+    redirects_df, from_col, to_col, policy,
+    sources, targets, conflicting_sources
+  )
+}
+
+#' Resolve conflicting redirect sources according to the chosen policy
+#'
+#' Invoked by [.preprocess_redirects()] only when at least one source has
+#' multiple distinct targets. Error-message text and per-policy behavior are
+#' preserved verbatim.
+#' @noRd
+.apply_redirect_conflict_policy <- function(redirects_df, from_col, to_col,
+                                            policy, sources, targets,
+                                            conflicting_sources) {
+  if (policy == "strict") {
+    first_conflict <- conflicting_sources[1]
+    conflict_targets <- unique(targets[sources == first_conflict])
+    stop("Ambiguous redirect: URL '", first_conflict,
+      "' maps to multiple distinct targets: ",
+      toString(conflict_targets),
+      call. = FALSE
+    )
+  }
+
+  if (policy == "resolve_if_consistent") {
+    first_conflict <- conflicting_sources[1]
+    conflict_targets <- unique(targets[sources == first_conflict])
+    stop("Ambiguous redirect: URL '", first_conflict,
+      "' maps to multiple distinct targets: ",
+      toString(conflict_targets),
+      call. = FALSE
+    )
+  }
+
+  if (policy == "first_wins") {
+    return(redirects_df[!duplicated(sources), , drop = FALSE])
+  }
+
+  if (policy == "last_wins") {
+    return(redirects_df[!duplicated(sources, fromLast = TRUE), , drop = FALSE])
+  }
+
+  if (policy == "prune_source") {
+    keep <- !(sources %in% conflicting_sources)
+    # Also deduplicate the remaining non-conflicting redirects
+    result <- redirects_df[keep, , drop = FALSE]
+    if (nrow(result) > 0) {
+      dedup_key <- paste0(result[[from_col]], "\t", result[[to_col]])
+      result <- result[!duplicated(dedup_key), , drop = FALSE]
+    }
+    return(result)
+  }
+
+  if (policy == "most_frequent") {
+    return(.resolve_most_frequent(
+      redirects_df, from_col, to_col, conflicting_sources
+    ))
+  }
+
+  # Should not reach here due to match.arg in caller, but as safeguard
+  stop("Unknown duplicate_from_policy: ", policy, call. = FALSE) # nocov
+}
+
+
+#' Resolve conflicting sources by keeping the most frequent target
+#'
+#' Non-conflicting sources are simply deduplicated; each conflicting source is
+#' reduced to its modal target (ties broken by first occurrence) via
+#' [.most_frequent_target()].
+#' @noRd
+.resolve_most_frequent <- function(redirects_df, from_col, to_col,
+                                   conflicting_sources) {
+  # For non-conflicting sources: just deduplicate
+  is_conflict <- redirects_df[[from_col]] %in% conflicting_sources
+  non_conflict <- redirects_df[!is_conflict, , drop = FALSE]
+  if (nrow(non_conflict) > 0) {
+    nc_key <- paste0(non_conflict[[from_col]], "\t", non_conflict[[to_col]])
+    non_conflict <- non_conflict[!duplicated(nc_key), , drop = FALSE]
+  }
+
+  # For conflicting sources: find the mode target per source
+  conflict_df <- redirects_df[is_conflict, , drop = FALSE]
+  resolved_rows <- lapply(conflicting_sources, function(src) {
+    .most_frequent_target(conflict_df, from_col, to_col, src)
+  })
+  resolved <- do.call(rbind, resolved_rows)
+  names(resolved) <- c(from_col, to_col)
+  rbind(non_conflict, resolved)
+}
+
+
+#' Pick the modal target for one conflicting source
+#'
+#' Returns a one-row `data.frame(from, to)` with the most frequent target for
+#' `src`; ties are broken by earliest occurrence in `conflict_df`.
+#' @noRd
+.most_frequent_target <- function(conflict_df, from_col, to_col, src) {
+  idx <- conflict_df[[from_col]] == src
+  src_targets <- conflict_df[[to_col]][idx]
+  freq <- table(src_targets)
+  max_freq <- max(freq)
+  candidates <- names(freq)[freq == max_freq]
+  # Tie-break: first occurrence in original data
+  winner <- candidates[1]
+  for (cand in candidates) {
+    if (match(cand, src_targets) < match(winner, src_targets)) {
+      winner <- cand
+    }
+  }
+  data.frame(from = src, to = winner)
+}

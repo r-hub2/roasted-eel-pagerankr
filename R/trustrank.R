@@ -1,0 +1,102 @@
+#' @title TrustRank Seed-Biased PageRank
+#' @description TrustRank (Gyöngyi, Garcia-Molina & Pedersen, 2004) is
+#'   personalized PageRank whose teleport vector is concentrated on a set of
+#'   **trusted seed** pages instead of being uniform. Trust then flows outward
+#'   along links and attenuates with distance (the PageRank damping factor *is*
+#'   the trust-attenuation mechanism), so pages well-linked from the trusted
+#'   core score high and pages far from it score low.
+#'
+#'   `pagerankr` implements this with **no new solver**: a trusted-seed prior is
+#'   exactly a `prior_df` for the existing TIPR personalization path. Build that
+#'   prior from a seed set with [seed_prior()], and `trustrank()` is the worked
+#'   convenience wrapper that builds the seed prior and runs [pagerank()] with
+#'   it on the forward graph.
+#'
+#'   This is **seed-biased PageRank**, not a full spam-detection system: it
+#'   reproduces the biased-propagation core of TrustRank, leaving seed selection
+#'   (expert-reviewed "good" pages) to the caller.
+#'
+#' @details
+#' The seed weights are an **additive trust budget**: when two seed URLs fold
+#' onto the same vertex (redirect/canonical variants) their weights sum, exactly
+#' as the [pagerank()] / [align_prior_to_vertices()] prior contract specifies.
+#' Equal weights reproduce TrustRank's uniform seed distribution; unequal
+#' weights express graded trust. See [seed_prior()] for the prior-builder
+#' contract; the same builder serves [topic_feeder_pagerank()], which runs it on
+#' the reversed graph.
+#'
+#' `trustrank()` forwards `...` to [pagerank()], so the full graph-preparation
+#' surface (redirects, canonicals, URL cleaning, domain/host filtering, edge
+#' weights, duplicate-edge policy) and the prior-shaping knobs
+#' (`prior_transform`, `prior_alpha`) are all available. In particular
+#' `prior_alpha` mixes a uniform teleport baseline back in: `prior_alpha = 0`
+#' (the default) is pure trust teleport (untrusted, unreachable pages get no
+#' teleport mass), while a small positive value gives every page a floor.
+#' Because this owns the prior, passing `prior_df`, `prior_url_col`, or
+#' `prior_weight_col` to `trustrank()` is an error — supply `seeds`.
+#'
+#' @inheritParams pagerank
+#' @inheritParams seed_prior
+#' @param seeds The trusted seed set. Either a character vector of trusted URLs
+#'   (each gets equal seed weight unless `seed_weight` is given), or a data
+#'   frame with a URL column and a numeric weight column (see `seed_url_col` /
+#'   `seed_weight_col`) for unequal trust. See [seed_prior()].
+#' @param seed_weight Optional numeric trust weight for a character-vector
+#'   `seeds`: either one value per seed or a single value recycled to all seeds.
+#'   Ignored when `seeds` is a data frame. Default `NULL` (every seed weight
+#'   `1`, i.e. a uniform distribution over the trusted set, as in the original
+#'   TrustRank).
+#' @param ... Additional arguments forwarded to [pagerank()] (e.g.
+#'   `redirects_df`, `rurl_params`, `prior_transform`, `prior_alpha`,
+#'   `damping`). Passing `prior_df`, `prior_url_col`, or `prior_weight_col` is
+#'   an error.
+#'
+#' @return The [pagerank()] result data frame (`node_name`, `pagerank`, and the
+#'   `prior_weight` column the prior path adds), carrying the usual
+#'   `"transition_audit"` attribute.
+#'
+#' @seealso [seed_prior()], [pagerank()], [align_prior_to_vertices()],
+#'   [topic_sensitive_pagerank()], [topic_feeder_pagerank()]
+#' @examples
+#' edges <- data.frame(
+#'   from = c("/", "/", "/hub", "/hub", "/spam", "/good"),
+#'   to = c("/hub", "/good", "/good", "/deep", "/good", "/hub")
+#' )
+#'
+#' # Build a trusted-seed prior, then run it through pagerank() manually.
+#' prior <- seed_prior(c("/", "/hub"))
+#' pr <- pagerank(edges, prior_df = prior, clean_edge_urls = FALSE)
+#'
+#' # ...or in one call with the convenience wrapper.
+#' tr <- trustrank(edges, c("/", "/hub"), clean_edge_urls = FALSE)
+#' print(tr)
+#' @export
+trustrank <- function(edge_list_df,
+                      seeds,
+                      seed_weight = NULL,
+                      seed_url_col = "url",
+                      seed_weight_col = "weight",
+                      ...) {
+  if (!is.data.frame(edge_list_df)) {
+    stop("`edge_list_df` must be a data frame.", call. = FALSE)
+  }
+  dots <- list(...)
+  .reject_owned_args(
+    dots,
+    c("prior_df", "prior_url_col", "prior_weight_col"),
+    "trustrank",
+    "the teleport prior is built from `seeds`."
+  )
+
+  prior <- seed_prior(
+    seeds,
+    seed_weight = seed_weight,
+    seed_url_col = seed_url_col,
+    seed_weight_col = seed_weight_col
+  )
+
+  do.call(
+    pagerank,
+    c(list(edge_list_df = edge_list_df, prior_df = prior), dots)
+  )
+}

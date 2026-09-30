@@ -1,0 +1,1686 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+
+<meta name="author" content="Bart Turczynski" />
+
+<meta name="date" content="2026-09-30" />
+
+<title>Using the pagerankr Package</title>
+
+<script>// Pandoc 2.9 adds attributes on both header and div. We remove the former (to
+// be compatible with the behavior of Pandoc < 2.8).
+document.addEventListener('DOMContentLoaded', function(e) {
+  var hs = document.querySelectorAll("div.section[class*='level'] > :first-child");
+  var i, h, a;
+  for (i = 0; i < hs.length; i++) {
+    h = hs[i];
+    if (!/^h[1-6]$/i.test(h.tagName)) continue;  // it should be a header h1-h6
+    a = h.attributes;
+    while (a.length > 0) h.removeAttribute(a[0].name);
+  }
+});
+</script>
+
+<style type="text/css">
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+span.underline{text-decoration: underline;}
+div.column{display: inline-block; vertical-align: top; width: 50%;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+</style>
+
+
+
+<style type="text/css">
+code {
+white-space: pre;
+}
+.sourceCode {
+overflow: visible;
+}
+</style>
+<style type="text/css" data-origin="pandoc">
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+{ counter-reset: source-line 0; }
+pre.numberSource code > span
+{ position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+{ content: counter(source-line);
+position: relative; left: -1em; text-align: right; vertical-align: baseline;
+border: none; display: inline-block;
+-webkit-touch-callout: none; -webkit-user-select: none;
+-khtml-user-select: none; -moz-user-select: none;
+-ms-user-select: none; user-select: none;
+padding: 0 4px; width: 4em;
+color: #aaaaaa;
+}
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa; padding-left: 4px; }
+div.sourceCode
+{ }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ff0000; font-weight: bold; } 
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.at { color: #7d9029; } 
+code span.bn { color: #40a070; } 
+code span.bu { color: #008000; } 
+code span.cf { color: #007020; font-weight: bold; } 
+code span.ch { color: #4070a0; } 
+code span.cn { color: #880000; } 
+code span.co { color: #60a0b0; font-style: italic; } 
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.do { color: #ba2121; font-style: italic; } 
+code span.dt { color: #902000; } 
+code span.dv { color: #40a070; } 
+code span.er { color: #ff0000; font-weight: bold; } 
+code span.ex { } 
+code span.fl { color: #40a070; } 
+code span.fu { color: #06287e; } 
+code span.im { color: #008000; font-weight: bold; } 
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.kw { color: #007020; font-weight: bold; } 
+code span.op { color: #666666; } 
+code span.ot { color: #007020; } 
+code span.pp { color: #bc7a00; } 
+code span.sc { color: #4070a0; } 
+code span.ss { color: #bb6688; } 
+code span.st { color: #4070a0; } 
+code span.va { color: #19177c; } 
+code span.vs { color: #4070a0; } 
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } 
+</style>
+<script>
+// apply pandoc div.sourceCode style to pre.sourceCode instead
+(function() {
+  var sheets = document.styleSheets;
+  for (var i = 0; i < sheets.length; i++) {
+    if (sheets[i].ownerNode.dataset["origin"] !== "pandoc") continue;
+    try { var rules = sheets[i].cssRules; } catch (e) { continue; }
+    var j = 0;
+    while (j < rules.length) {
+      var rule = rules[j];
+      // check if there is a div.sourceCode rule
+      if (rule.type !== rule.STYLE_RULE || rule.selectorText !== "div.sourceCode") {
+        j++;
+        continue;
+      }
+      var style = rule.style.cssText;
+      // check if color or background-color is set
+      if (rule.style.color === '' && rule.style.backgroundColor === '') {
+        j++;
+        continue;
+      }
+      // replace div.sourceCode by a pre.sourceCode rule
+      sheets[i].deleteRule(j);
+      sheets[i].insertRule('pre.sourceCode{' + style + '}', j);
+    }
+  }
+})();
+</script>
+
+
+
+
+<style type="text/css">body {
+background-color: #fff;
+margin: 1em auto;
+max-width: 700px;
+overflow: visible;
+padding-left: 2em;
+padding-right: 2em;
+font-family: "Open Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+font-size: 14px;
+line-height: 1.35;
+}
+#TOC {
+clear: both;
+margin: 0 0 10px 10px;
+padding: 4px;
+width: 400px;
+border: 1px solid #CCCCCC;
+border-radius: 5px;
+background-color: #f6f6f6;
+font-size: 13px;
+line-height: 1.3;
+}
+#TOC .toctitle {
+font-weight: bold;
+font-size: 15px;
+margin-left: 5px;
+}
+#TOC ul {
+padding-left: 40px;
+margin-left: -1.5em;
+margin-top: 5px;
+margin-bottom: 5px;
+}
+#TOC ul ul {
+margin-left: -2em;
+}
+#TOC li {
+line-height: 16px;
+}
+table {
+margin: 1em auto;
+border-width: 1px;
+border-color: #DDDDDD;
+border-style: outset;
+border-collapse: collapse;
+}
+table th {
+border-width: 2px;
+padding: 5px;
+border-style: inset;
+}
+table td {
+border-width: 1px;
+border-style: inset;
+line-height: 18px;
+padding: 5px 5px;
+}
+table, table th, table td {
+border-left-style: none;
+border-right-style: none;
+}
+table thead, table tr.even {
+background-color: #f7f7f7;
+}
+p {
+margin: 0.5em 0;
+}
+blockquote {
+background-color: #f6f6f6;
+padding: 0.25em 0.75em;
+}
+hr {
+border-style: solid;
+border: none;
+border-top: 1px solid #777;
+margin: 28px 0;
+}
+dl {
+margin-left: 0;
+}
+dl dd {
+margin-bottom: 13px;
+margin-left: 13px;
+}
+dl dt {
+font-weight: bold;
+}
+ul {
+margin-top: 0;
+}
+ul li {
+list-style: circle outside;
+}
+ul ul {
+margin-bottom: 0;
+}
+pre, code {
+background-color: #f7f7f7;
+border-radius: 3px;
+color: #333;
+white-space: pre-wrap; 
+}
+pre {
+border-radius: 3px;
+margin: 5px 0px 10px 0px;
+padding: 10px;
+}
+pre:not([class]) {
+background-color: #f7f7f7;
+}
+code {
+font-family: Consolas, Monaco, 'Courier New', monospace;
+font-size: 85%;
+}
+p > code, li > code {
+padding: 2px 0px;
+}
+div.figure {
+text-align: center;
+}
+img {
+background-color: #FFFFFF;
+padding: 2px;
+border: 1px solid #DDDDDD;
+border-radius: 3px;
+border: 1px solid #CCCCCC;
+margin: 0 5px;
+}
+h1 {
+margin-top: 0;
+font-size: 35px;
+line-height: 40px;
+}
+h2 {
+border-bottom: 4px solid #f7f7f7;
+padding-top: 10px;
+padding-bottom: 2px;
+font-size: 145%;
+}
+h3 {
+border-bottom: 2px solid #f7f7f7;
+padding-top: 10px;
+font-size: 120%;
+}
+h4 {
+border-bottom: 1px solid #f7f7f7;
+margin-left: 8px;
+font-size: 105%;
+}
+h5, h6 {
+border-bottom: 1px solid #ccc;
+font-size: 105%;
+}
+a {
+color: #0033dd;
+text-decoration: none;
+}
+a:hover {
+color: #6666ff; }
+a:visited {
+color: #800080; }
+a:visited:hover {
+color: #BB00BB; }
+a[href^="http:"] {
+text-decoration: underline; }
+a[href^="https:"] {
+text-decoration: underline; }
+
+code > span.kw { color: #555; font-weight: bold; } 
+code > span.dt { color: #902000; } 
+code > span.dv { color: #40a070; } 
+code > span.bn { color: #d14; } 
+code > span.fl { color: #d14; } 
+code > span.ch { color: #d14; } 
+code > span.st { color: #d14; } 
+code > span.co { color: #888888; font-style: italic; } 
+code > span.ot { color: #007020; } 
+code > span.al { color: #ff0000; font-weight: bold; } 
+code > span.fu { color: #900; font-weight: bold; } 
+code > span.er { color: #a61717; background-color: #e3d2d2; } 
+</style>
+
+
+
+
+</head>
+
+<body>
+
+
+
+
+<h1 class="title toc-ignore">Using the pagerankr Package</h1>
+<h4 class="author">Bart Turczynski</h4>
+<h4 class="date">2026-09-30</h4>
+
+
+<div id="TOC">
+<ul>
+<li><a href="#introduction" id="toc-introduction">Introduction</a></li>
+<li><a href="#installation" id="toc-installation">Installation</a></li>
+<li><a href="#quick-start" id="toc-quick-start">Quick Start</a></li>
+<li><a href="#screaming-frog-crawl-exports" id="toc-screaming-frog-crawl-exports">Screaming Frog crawl
+exports</a></li>
+<li><a href="#redirect-resolution" id="toc-redirect-resolution">Redirect
+Resolution</a>
+<ul>
+<li><a href="#basic-redirect-handling" id="toc-basic-redirect-handling">Basic redirect handling</a></li>
+<li><a href="#conflicting-redirects" id="toc-conflicting-redirects">Conflicting redirects</a></li>
+<li><a href="#redirect-loops" id="toc-redirect-loops">Redirect
+loops</a></li>
+<li><a href="#standalone-link-resolution" id="toc-standalone-link-resolution">Standalone link resolution</a></li>
+</ul></li>
+<li><a href="#nofollow-handling" id="toc-nofollow-handling">Nofollow
+Handling</a></li>
+<li><a href="#indexability" id="toc-indexability">Indexability</a>
+<ul>
+<li><a href="#noindex-pages" id="toc-noindex-pages">noindex
+pages</a></li>
+<li><a href="#robots.txt-blocked-pages" id="toc-robots.txt-blocked-pages">robots.txt blocked pages</a></li>
+</ul></li>
+<li><a href="#weighted-edges" id="toc-weighted-edges">Weighted
+Edges</a></li>
+<li><a href="#domain-filtering" id="toc-domain-filtering">Domain
+Filtering</a></li>
+<li><a href="#hits-hub-and-authority" id="toc-hits-hub-and-authority">HITS hub and authority</a></li>
+<li><a href="#salsa-hub-and-authority" id="toc-salsa-hub-and-authority">SALSA hub and authority</a></li>
+<li><a href="#model-comparison" id="toc-model-comparison">Model
+Comparison</a>
+<ul>
+<li><a href="#comparing-two-models" id="toc-comparing-two-models">Comparing two models</a></li>
+<li><a href="#parameter-grid-search" id="toc-parameter-grid-search">Parameter grid search</a></li>
+<li><a href="#distribution-metrics" id="toc-distribution-metrics">Distribution metrics</a></li>
+</ul></li>
+<li><a href="#simulating-changes" id="toc-simulating-changes">Simulating
+Changes</a>
+<ul>
+<li><a href="#adding-links" id="toc-adding-links">Adding links</a></li>
+<li><a href="#removing-links" id="toc-removing-links">Removing
+links</a></li>
+<li><a href="#simulating-redirects" id="toc-simulating-redirects">Simulating redirects</a></li>
+<li><a href="#combined-changes" id="toc-combined-changes">Combined
+changes</a></li>
+</ul></li>
+<li><a href="#convergence-controls-and-damping-stability" id="toc-convergence-controls-and-damping-stability">Convergence Controls
+and Damping Stability</a>
+<ul>
+<li><a href="#pagerank-convergence-controls" id="toc-pagerank-convergence-controls">pagerank() convergence
+controls</a></li>
+<li><a href="#damping_sensitivity-and-pagerank_stability" id="toc-damping_sensitivity-and-pagerank_stability">damping_sensitivity()
+and pagerank_stability()</a></li>
+<li><a href="#worked-example" id="toc-worked-example">Worked
+example</a></li>
+</ul></li>
+<li><a href="#topic-sensitive-pagerank" id="toc-topic-sensitive-pagerank">Topic-Sensitive PageRank</a>
+<ul>
+<li><a href="#worked-example-1" id="toc-worked-example-1">Worked
+example</a></li>
+<li><a href="#distinguishing-related-functions" id="toc-distinguishing-related-functions">Distinguishing related
+functions</a></li>
+</ul></li>
+<li><a href="#ga4-behavioral-transitions" id="toc-ga4-behavioral-transitions">GA4 Behavioral Transitions</a>
+<ul>
+<li><a href="#building-transition-counts-with-ga4_page_transitions" id="toc-building-transition-counts-with-ga4_page_transitions">Building
+transition counts with <code>ga4_page_transitions()</code></a></li>
+<li><a href="#smoothing-sparse-transitions-with-smooth_transitions" id="toc-smoothing-sparse-transitions-with-smooth_transitions">Smoothing
+sparse transitions with <code>smooth_transitions()</code></a></li>
+<li><a href="#converting-entrances-to-a-teleport-vector-with-ga4_entrance_teleport" id="toc-converting-entrances-to-a-teleport-vector-with-ga4_entrance_teleport">Converting
+entrances to a teleport vector with
+<code>ga4_entrance_teleport()</code></a></li>
+<li><a href="#end-to-end-example" id="toc-end-to-end-example">End-to-end
+example</a></li>
+</ul></li>
+<li><a href="#function-reference" id="toc-function-reference">Function
+Reference</a></li>
+<li><a href="#acknowledgments" id="toc-acknowledgments">Acknowledgments</a></li>
+</ul>
+</div>
+
+<div id="introduction" class="section level2">
+<h2>Introduction</h2>
+<p>The <code>pagerankr</code> package provides an SEO-focused toolkit
+for calculating, comparing, and analyzing PageRank scores from web crawl
+data. It handles the full pipeline from raw crawl exports (edge lists,
+redirect reports, nofollow annotations, indexability status) to
+actionable insights.</p>
+<p>The package offers:</p>
+<ul>
+<li><strong><code>pagerank()</code></strong> – end-to-end wrapper for
+quick calculations</li>
+<li><strong>Modular functions</strong> – for granular control over each
+pipeline step</li>
+<li><strong>Model comparison</strong> – grid search, diff, and
+distribution metrics</li>
+<li><strong>What-if simulation</strong> – test link/redirect changes
+before production</li>
+</ul>
+<p>All data manipulation uses base R. <code>igraph</code> powers the
+PageRank algorithm and graph-based redirect resolution.
+<code>rurl</code> handles URL canonicalization.</p>
+</div>
+<div id="installation" class="section level2">
+<h2>Installation</h2>
+<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" tabindex="-1"></a><span class="co"># install.packages(&quot;devtools&quot;)</span></span>
+<span id="cb1-2"><a href="#cb1-2" tabindex="-1"></a>devtools<span class="sc">::</span><span class="fu">install_gitlab</span>(<span class="st">&quot;bart-turczynski/pagerankr&quot;</span>)</span></code></pre></div>
+<div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" tabindex="-1"></a><span class="fu">library</span>(pagerankr)</span></code></pre></div>
+</div>
+<div id="quick-start" class="section level2">
+<h2>Quick Start</h2>
+<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" tabindex="-1"></a>edges <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(</span>
+<span id="cb3-2"><a href="#cb3-2" tabindex="-1"></a>  <span class="at">from =</span> <span class="fu">c</span>(</span>
+<span id="cb3-3"><a href="#cb3-3" tabindex="-1"></a>    <span class="st">&quot;example.com/home&quot;</span>, <span class="st">&quot;example.com/about&quot;</span>,</span>
+<span id="cb3-4"><a href="#cb3-4" tabindex="-1"></a>    <span class="st">&quot;example.com/blog&quot;</span>, <span class="st">&quot;example.com/blog&quot;</span></span>
+<span id="cb3-5"><a href="#cb3-5" tabindex="-1"></a>  ),</span>
+<span id="cb3-6"><a href="#cb3-6" tabindex="-1"></a>  <span class="at">to =</span> <span class="fu">c</span>(</span>
+<span id="cb3-7"><a href="#cb3-7" tabindex="-1"></a>    <span class="st">&quot;example.com/about&quot;</span>, <span class="st">&quot;example.com/home&quot;</span>,</span>
+<span id="cb3-8"><a href="#cb3-8" tabindex="-1"></a>    <span class="st">&quot;example.com/home&quot;</span>, <span class="st">&quot;example.com/about&quot;</span></span>
+<span id="cb3-9"><a href="#cb3-9" tabindex="-1"></a>  )</span>
+<span id="cb3-10"><a href="#cb3-10" tabindex="-1"></a>)</span>
+<span id="cb3-11"><a href="#cb3-11" tabindex="-1"></a></span>
+<span id="cb3-12"><a href="#cb3-12" tabindex="-1"></a>pr <span class="ot">&lt;-</span> <span class="fu">pagerank</span>(edges)</span>
+<span id="cb3-13"><a href="#cb3-13" tabindex="-1"></a><span class="fu">print</span>(pr)</span>
+<span id="cb3-14"><a href="#cb3-14" tabindex="-1"></a><span class="co">#&gt;                  node_name pagerank</span></span>
+<span id="cb3-15"><a href="#cb3-15" tabindex="-1"></a><span class="co">#&gt; 1 http://example.com/about    0.475</span></span>
+<span id="cb3-16"><a href="#cb3-16" tabindex="-1"></a><span class="co">#&gt; 2  http://example.com/blog    0.050</span></span>
+<span id="cb3-17"><a href="#cb3-17" tabindex="-1"></a><span class="co">#&gt; 3  http://example.com/home    0.475</span></span></code></pre></div>
+</div>
+<div id="screaming-frog-crawl-exports" class="section level2">
+<h2>Screaming Frog crawl exports</h2>
+<p><code>pagerankr</code> can score a Screaming Frog crawl directly when
+you export:</p>
+<ul>
+<li><strong>Internal: All</strong> for node facts, redirects,
+canonicals, and indexability.</li>
+<li><strong>All Inlinks</strong> or <strong>All Outlinks</strong> for
+link observations.</li>
+</ul>
+<p>The package keeps those contracts separate. Internal: All is
+node-only and is never treated as an edge list. The link export
+preserves raw observations, but only <code>Type == &quot;Hyperlink&quot;</code>
+rows with valid source and destination become graph edges. Resource,
+canonical, hreflang, and other link-row types stay available through
+import diagnostics.</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" tabindex="-1"></a>bundle <span class="ot">&lt;-</span> <span class="fu">screaming_frog_bundle</span>(</span>
+<span id="cb4-2"><a href="#cb4-2" tabindex="-1"></a>  <span class="at">internal =</span> <span class="st">&quot;internal_all.csv&quot;</span>,</span>
+<span id="cb4-3"><a href="#cb4-3" tabindex="-1"></a>  <span class="at">links =</span> <span class="st">&quot;all_outlinks.csv&quot;</span>,</span>
+<span id="cb4-4"><a href="#cb4-4" tabindex="-1"></a>  <span class="at">link_export_kind =</span> <span class="st">&quot;all_outlinks&quot;</span></span>
+<span id="cb4-5"><a href="#cb4-5" tabindex="-1"></a>)</span>
+<span id="cb4-6"><a href="#cb4-6" tabindex="-1"></a></span>
+<span id="cb4-7"><a href="#cb4-7" tabindex="-1"></a>pr <span class="ot">&lt;-</span> <span class="fu">pagerank_screaming_frog</span>(bundle)</span>
+<span id="cb4-8"><a href="#cb4-8" tabindex="-1"></a></span>
+<span id="cb4-9"><a href="#cb4-9" tabindex="-1"></a><span class="fu">summary</span>(bundle)</span>
+<span id="cb4-10"><a href="#cb4-10" tabindex="-1"></a><span class="fu">attr</span>(pr, <span class="st">&quot;screaming_frog_import&quot;</span>)</span>
+<span id="cb4-11"><a href="#cb4-11" tabindex="-1"></a><span class="fu">attr</span>(pr, <span class="st">&quot;transition_audit&quot;</span>)</span></code></pre></div>
+<p>By default, all graph-eligible Hyperlink edges are scored.
+HTML/rendered origin filtering, placement selection, and
+placement-derived weights are opt-in scoring policy:</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" tabindex="-1"></a><span class="fu">pagerank_screaming_frog</span>(</span>
+<span id="cb5-2"><a href="#cb5-2" tabindex="-1"></a>  bundle,</span>
+<span id="cb5-3"><a href="#cb5-3" tabindex="-1"></a>  <span class="at">accepted_placements =</span> <span class="fu">c</span>(<span class="st">&quot;nav&quot;</span>, <span class="st">&quot;content&quot;</span>),</span>
+<span id="cb5-4"><a href="#cb5-4" tabindex="-1"></a>  <span class="at">link_origins =</span> <span class="fu">c</span>(<span class="st">&quot;html&quot;</span>, <span class="st">&quot;html_rendered&quot;</span>),</span>
+<span id="cb5-5"><a href="#cb5-5" tabindex="-1"></a>  <span class="at">placement_weights =</span> <span class="fu">c</span>(<span class="at">nav =</span> <span class="dv">2</span>, <span class="at">content =</span> <span class="dv">1</span>)</span>
+<span id="cb5-6"><a href="#cb5-6" tabindex="-1"></a>)</span></code></pre></div>
+<p>Placement is not a Screaming Frog concept:
+<code>accepted_placements</code> and <code>placement_weights</code> are
+<code>pagerank()</code> arguments, and the wrapper only supplies the
+bundle’s normalized placement column. Any crawler that reports link
+regions can drive the same weighting by naming its own column, using the
+shared vocabulary <code>&quot;content&quot;</code>, <code>&quot;nav&quot;</code>,
+<code>&quot;header&quot;</code>, <code>&quot;footer&quot;</code>, <code>&quot;aside&quot;</code>:</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" tabindex="-1"></a><span class="fu">pagerank</span>(</span>
+<span id="cb6-2"><a href="#cb6-2" tabindex="-1"></a>  edges,</span>
+<span id="cb6-3"><a href="#cb6-3" tabindex="-1"></a>  <span class="at">placement_col =</span> <span class="st">&quot;region&quot;</span>,</span>
+<span id="cb6-4"><a href="#cb6-4" tabindex="-1"></a>  <span class="at">placement_weights =</span> <span class="fu">c</span>(</span>
+<span id="cb6-5"><a href="#cb6-5" tabindex="-1"></a>    <span class="at">content =</span> <span class="dv">1</span>, <span class="at">nav =</span> <span class="fl">0.1</span>, <span class="at">header =</span> <span class="fl">0.1</span>, <span class="at">footer =</span> <span class="fl">0.1</span>, <span class="at">aside =</span> <span class="fl">0.1</span></span>
+<span id="cb6-6"><a href="#cb6-6" tabindex="-1"></a>  )</span>
+<span id="cb6-7"><a href="#cb6-7" tabindex="-1"></a>)</span></code></pre></div>
+<p>Note that regions are <em>downweighted</em>, not dropped. Filtering
+nav out changes the graph’s shape — pages reachable only through nav
+become teleport-only — whereas a small weight leaves the topology intact
+and merely stops nav dominating, which on a real crawl it usually
+does.</p>
+<p>For large crawls, the import adapters read only the columns used by
+the stable contract. If an export is degraded, missing optional columns
+become typed <code>NA</code> values and are reported in diagnostics;
+missing required columns error early. The bundle provenance includes
+detected column aliases and contract version, so production pipelines
+should pin the expected <code>contract_version</code>.</p>
+</div>
+<div id="redirect-resolution" class="section level2">
+<h2>Redirect Resolution</h2>
+<div id="basic-redirect-handling" class="section level3">
+<h3>Basic redirect handling</h3>
+<div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" tabindex="-1"></a>edges <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(</span>
+<span id="cb7-2"><a href="#cb7-2" tabindex="-1"></a>  <span class="at">from =</span> <span class="fu">c</span>(<span class="st">&quot;A&quot;</span>, <span class="st">&quot;B&quot;</span>, <span class="st">&quot;C&quot;</span>),</span>
+<span id="cb7-3"><a href="#cb7-3" tabindex="-1"></a>  <span class="at">to =</span> <span class="fu">c</span>(<span class="st">&quot;B&quot;</span>, <span class="st">&quot;C&quot;</span>, <span class="st">&quot;D&quot;</span>)</span>
+<span id="cb7-4"><a href="#cb7-4" tabindex="-1"></a>)</span>
+<span id="cb7-5"><a href="#cb7-5" tabindex="-1"></a>redirects <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(</span>
+<span id="cb7-6"><a href="#cb7-6" tabindex="-1"></a>  <span class="at">from =</span> <span class="fu">c</span>(<span class="st">&quot;B&quot;</span>, <span class="st">&quot;C&quot;</span>),</span>
+<span id="cb7-7"><a href="#cb7-7" tabindex="-1"></a>  <span class="at">to =</span> <span class="fu">c</span>(<span class="st">&quot;B_new&quot;</span>, <span class="st">&quot;C_new&quot;</span>)</span>
+<span id="cb7-8"><a href="#cb7-8" tabindex="-1"></a>)</span>
+<span id="cb7-9"><a href="#cb7-9" tabindex="-1"></a></span>
+<span id="cb7-10"><a href="#cb7-10" tabindex="-1"></a><span class="co"># resolve_redirects() applies redirect rules to an edge list</span></span>
+<span id="cb7-11"><a href="#cb7-11" tabindex="-1"></a>resolved <span class="ot">&lt;-</span> <span class="fu">resolve_redirects</span>(edges, redirects)</span>
+<span id="cb7-12"><a href="#cb7-12" tabindex="-1"></a><span class="fu">print</span>(resolved)</span>
+<span id="cb7-13"><a href="#cb7-13" tabindex="-1"></a><span class="co">#&gt;    from    to</span></span>
+<span id="cb7-14"><a href="#cb7-14" tabindex="-1"></a><span class="co">#&gt; 1     A B_new</span></span>
+<span id="cb7-15"><a href="#cb7-15" tabindex="-1"></a><span class="co">#&gt; 2 B_new C_new</span></span>
+<span id="cb7-16"><a href="#cb7-16" tabindex="-1"></a><span class="co">#&gt; 3 C_new     D</span></span></code></pre></div>
+<p>Redirect chains are resolved transitively: if A redirects to B and B
+redirects to C, then A resolves to C.</p>
+</div>
+<div id="conflicting-redirects" class="section level3">
+<h3>Conflicting redirects</h3>
+<p>Crawl data often has the same URL redirecting to different targets.
+Use <code>duplicate_from_policy</code> to control the behavior:</p>
+<div class="sourceCode" id="cb8"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" tabindex="-1"></a>redirects_conflict <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(</span>
+<span id="cb8-2"><a href="#cb8-2" tabindex="-1"></a>  <span class="at">from =</span> <span class="fu">c</span>(<span class="st">&quot;old&quot;</span>, <span class="st">&quot;old&quot;</span>, <span class="st">&quot;old&quot;</span>),</span>
+<span id="cb8-3"><a href="#cb8-3" tabindex="-1"></a>  <span class="at">to =</span> <span class="fu">c</span>(<span class="st">&quot;target_A&quot;</span>, <span class="st">&quot;target_B&quot;</span>, <span class="st">&quot;target_B&quot;</span>)</span>
+<span id="cb8-4"><a href="#cb8-4" tabindex="-1"></a>)</span>
+<span id="cb8-5"><a href="#cb8-5" tabindex="-1"></a></span>
+<span id="cb8-6"><a href="#cb8-6" tabindex="-1"></a><span class="co"># &quot;most_frequent&quot; picks the most common target</span></span>
+<span id="cb8-7"><a href="#cb8-7" tabindex="-1"></a>edges_simple <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(<span class="at">from =</span> <span class="st">&quot;X&quot;</span>, <span class="at">to =</span> <span class="st">&quot;old&quot;</span>)</span>
+<span id="cb8-8"><a href="#cb8-8" tabindex="-1"></a><span class="fu">resolve_redirects</span>(edges_simple, redirects_conflict,</span>
+<span id="cb8-9"><a href="#cb8-9" tabindex="-1"></a>  <span class="at">duplicate_from_policy =</span> <span class="st">&quot;most_frequent&quot;</span></span>
+<span id="cb8-10"><a href="#cb8-10" tabindex="-1"></a>)</span>
+<span id="cb8-11"><a href="#cb8-11" tabindex="-1"></a><span class="co">#&gt;   from       to</span></span>
+<span id="cb8-12"><a href="#cb8-12" tabindex="-1"></a><span class="co">#&gt; 1    X target_B</span></span></code></pre></div>
+<p>Available policies: <code>strict</code> (default, errors on
+conflict), <code>first_wins</code>, <code>last_wins</code>,
+<code>most_frequent</code>, <code>prune_source</code>,
+<code>resolve_if_consistent</code>.</p>
+</div>
+<div id="redirect-loops" class="section level3">
+<h3>Redirect loops</h3>
+<p>Redirect cycles (A -&gt; B -&gt; C -&gt; A) are detected via strongly
+connected components. Use <code>loop_handling</code> to control
+behavior:</p>
+<div class="sourceCode" id="cb9"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" tabindex="-1"></a>edges_loop <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(<span class="at">from =</span> <span class="st">&quot;X&quot;</span>, <span class="at">to =</span> <span class="st">&quot;A&quot;</span>)</span>
+<span id="cb9-2"><a href="#cb9-2" tabindex="-1"></a>redirects_loop <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(</span>
+<span id="cb9-3"><a href="#cb9-3" tabindex="-1"></a>  <span class="at">from =</span> <span class="fu">c</span>(<span class="st">&quot;A&quot;</span>, <span class="st">&quot;B&quot;</span>, <span class="st">&quot;C&quot;</span>, <span class="st">&quot;D&quot;</span>),</span>
+<span id="cb9-4"><a href="#cb9-4" tabindex="-1"></a>  <span class="at">to =</span> <span class="fu">c</span>(<span class="st">&quot;B&quot;</span>, <span class="st">&quot;C&quot;</span>, <span class="st">&quot;A&quot;</span>, <span class="st">&quot;E&quot;</span>)</span>
+<span id="cb9-5"><a href="#cb9-5" tabindex="-1"></a>)</span>
+<span id="cb9-6"><a href="#cb9-6" tabindex="-1"></a></span>
+<span id="cb9-7"><a href="#cb9-7" tabindex="-1"></a><span class="co"># &quot;prune_loop&quot; removes cycle edges; linear redirects still work</span></span>
+<span id="cb9-8"><a href="#cb9-8" tabindex="-1"></a>resolved <span class="ot">&lt;-</span> <span class="fu">resolve_redirects</span>(edges_loop, redirects_loop,</span>
+<span id="cb9-9"><a href="#cb9-9" tabindex="-1"></a>  <span class="at">loop_handling =</span> <span class="st">&quot;prune_loop&quot;</span></span>
+<span id="cb9-10"><a href="#cb9-10" tabindex="-1"></a>)</span>
+<span id="cb9-11"><a href="#cb9-11" tabindex="-1"></a><span class="fu">print</span>(resolved)</span>
+<span id="cb9-12"><a href="#cb9-12" tabindex="-1"></a><span class="co">#&gt;   from to</span></span>
+<span id="cb9-13"><a href="#cb9-13" tabindex="-1"></a><span class="co">#&gt; 1    X  A</span></span></code></pre></div>
+<p>Available policies: <code>error</code> (default),
+<code>prune_loop</code>, <code>break_arrow</code> (keeps the highest
+in-degree node as sink).</p>
+</div>
+<div id="standalone-link-resolution" class="section level3">
+<h3>Standalone link resolution</h3>
+<p>Use <code>resolve_links()</code> to apply redirects and deduplicate
+without computing PageRank – useful for inspecting the resolved
+graph:</p>
+<div class="sourceCode" id="cb10"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" tabindex="-1"></a>edges <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(</span>
+<span id="cb10-2"><a href="#cb10-2" tabindex="-1"></a>  <span class="at">from =</span> <span class="fu">c</span>(<span class="st">&quot;A&quot;</span>, <span class="st">&quot;A&quot;</span>, <span class="st">&quot;B&quot;</span>),</span>
+<span id="cb10-3"><a href="#cb10-3" tabindex="-1"></a>  <span class="at">to =</span> <span class="fu">c</span>(<span class="st">&quot;B&quot;</span>, <span class="st">&quot;B&quot;</span>, <span class="st">&quot;C&quot;</span>)</span>
+<span id="cb10-4"><a href="#cb10-4" tabindex="-1"></a>)</span>
+<span id="cb10-5"><a href="#cb10-5" tabindex="-1"></a>redirects <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(<span class="at">from =</span> <span class="st">&quot;B&quot;</span>, <span class="at">to =</span> <span class="st">&quot;B_final&quot;</span>)</span>
+<span id="cb10-6"><a href="#cb10-6" tabindex="-1"></a></span>
+<span id="cb10-7"><a href="#cb10-7" tabindex="-1"></a><span class="fu">resolve_links</span>(edges, redirects, <span class="at">clean_urls =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb10-8"><a href="#cb10-8" tabindex="-1"></a><span class="co">#&gt;      from      to</span></span>
+<span id="cb10-9"><a href="#cb10-9" tabindex="-1"></a><span class="co">#&gt; 1       A B_final</span></span>
+<span id="cb10-10"><a href="#cb10-10" tabindex="-1"></a><span class="co">#&gt; 2 B_final       C</span></span></code></pre></div>
+</div>
+</div>
+<div id="nofollow-handling" class="section level2">
+<h2>Nofollow Handling</h2>
+<p><code>pagerankr</code> provides three explicit propagation policies
+for links marked nofollow:</p>
+<ul>
+<li><code>&quot;evaporate&quot;</code> (the default) keeps each nofollow link as
+an outgoing slot. It consumes its weighted share of the source page’s
+budget, but that share reaches a sink rather than the target.</li>
+<li><code>&quot;drop&quot;</code> removes nofollow links before allocating the
+outgoing budget. They consume no slots, and followed links divide the
+full budget.</li>
+<li><code>&quot;keep&quot;</code> follows the links normally, so their targets
+receive their shares.</li>
+</ul>
+<p>These are package modeling choices; they are not claims about a
+search engine’s current implementation.</p>
+<div class="sourceCode" id="cb11"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" tabindex="-1"></a>edges <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(</span>
+<span id="cb11-2"><a href="#cb11-2" tabindex="-1"></a>  <span class="at">from =</span> <span class="fu">c</span>(<span class="st">&quot;Hub&quot;</span>, <span class="st">&quot;Hub&quot;</span>, <span class="st">&quot;Hub&quot;</span>),</span>
+<span id="cb11-3"><a href="#cb11-3" tabindex="-1"></a>  <span class="at">to =</span> <span class="fu">c</span>(<span class="st">&quot;A&quot;</span>, <span class="st">&quot;B&quot;</span>, <span class="st">&quot;C&quot;</span>),</span>
+<span id="cb11-4"><a href="#cb11-4" tabindex="-1"></a>  <span class="at">nofollow =</span> <span class="fu">c</span>(<span class="cn">FALSE</span>, <span class="cn">FALSE</span>, <span class="cn">TRUE</span>)</span>
+<span id="cb11-5"><a href="#cb11-5" tabindex="-1"></a>)</span>
+<span id="cb11-6"><a href="#cb11-6" tabindex="-1"></a></span>
+<span id="cb11-7"><a href="#cb11-7" tabindex="-1"></a><span class="co"># &quot;evaporate&quot;: PR splits 3 ways, C&#39;s share vanishes</span></span>
+<span id="cb11-8"><a href="#cb11-8" tabindex="-1"></a>pr_evap <span class="ot">&lt;-</span> <span class="fu">pagerank</span>(edges,</span>
+<span id="cb11-9"><a href="#cb11-9" tabindex="-1"></a>  <span class="at">nofollow_col =</span> <span class="st">&quot;nofollow&quot;</span>,</span>
+<span id="cb11-10"><a href="#cb11-10" tabindex="-1"></a>  <span class="at">nofollow_action =</span> <span class="st">&quot;evaporate&quot;</span>,</span>
+<span id="cb11-11"><a href="#cb11-11" tabindex="-1"></a>  <span class="at">clean_edge_urls =</span> <span class="cn">FALSE</span></span>
+<span id="cb11-12"><a href="#cb11-12" tabindex="-1"></a>)</span>
+<span id="cb11-13"><a href="#cb11-13" tabindex="-1"></a><span class="fu">print</span>(pr_evap)</span>
+<span id="cb11-14"><a href="#cb11-14" tabindex="-1"></a><span class="co">#&gt;   node_name  pagerank</span></span>
+<span id="cb11-15"><a href="#cb11-15" tabindex="-1"></a><span class="co">#&gt; 1         A 0.2352342</span></span>
+<span id="cb11-16"><a href="#cb11-16" tabindex="-1"></a><span class="co">#&gt; 2         B 0.2352342</span></span>
+<span id="cb11-17"><a href="#cb11-17" tabindex="-1"></a><span class="co">#&gt; 3       Hub 0.1832994</span></span>
+<span id="cb11-18"><a href="#cb11-18" tabindex="-1"></a></span>
+<span id="cb11-19"><a href="#cb11-19" tabindex="-1"></a><span class="co"># &quot;drop&quot;: nofollow edges removed, PR splits only among followed links</span></span>
+<span id="cb11-20"><a href="#cb11-20" tabindex="-1"></a>pr_drop <span class="ot">&lt;-</span> <span class="fu">pagerank</span>(edges,</span>
+<span id="cb11-21"><a href="#cb11-21" tabindex="-1"></a>  <span class="at">nofollow_col =</span> <span class="st">&quot;nofollow&quot;</span>,</span>
+<span id="cb11-22"><a href="#cb11-22" tabindex="-1"></a>  <span class="at">nofollow_action =</span> <span class="st">&quot;drop&quot;</span>,</span>
+<span id="cb11-23"><a href="#cb11-23" tabindex="-1"></a>  <span class="at">clean_edge_urls =</span> <span class="cn">FALSE</span></span>
+<span id="cb11-24"><a href="#cb11-24" tabindex="-1"></a>)</span>
+<span id="cb11-25"><a href="#cb11-25" tabindex="-1"></a><span class="fu">print</span>(pr_drop)</span>
+<span id="cb11-26"><a href="#cb11-26" tabindex="-1"></a><span class="co">#&gt;   node_name  pagerank</span></span>
+<span id="cb11-27"><a href="#cb11-27" tabindex="-1"></a><span class="co">#&gt; 1         A 0.3701299</span></span>
+<span id="cb11-28"><a href="#cb11-28" tabindex="-1"></a><span class="co">#&gt; 2         B 0.3701299</span></span>
+<span id="cb11-29"><a href="#cb11-29" tabindex="-1"></a><span class="co">#&gt; 3       Hub 0.2597403</span></span></code></pre></div>
+</div>
+<div id="indexability" class="section level2">
+<h2>Indexability</h2>
+<div id="noindex-pages" class="section level3">
+<h3>noindex pages</h3>
+<p><code>pagerankr</code> assumes that the ranked corpus consists of
+indexed documents. Under this indexed-corpus assumption, a
+<code>noindex</code> page is outside the ranked corpus. It may receive
+authority through inlinks, but cannot redistribute that authority within
+the indexed graph. The package therefore routes its outgoing budget to
+the shared waste sink — the same mechanism used for robots-blocked and
+response-dead (4xx/5xx) pages. This is independent of
+<code>nofollow_action</code>, which governs only real
+<code>rel=nofollow</code> edges.</p>
+<p>This is strictly a <code>pagerankr</code> PageRank assumption. It
+does not mean that Google or another search engine defines
+<code>noindex</code> as an explicit nofollow directive. A noindex page
+can remain visible in the result to make its received authority
+auditable; hiding it would be an optional reporting choice, not a change
+required for correct propagation under this model.</p>
+<div class="sourceCode" id="cb12"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" tabindex="-1"></a>edges <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(</span>
+<span id="cb12-2"><a href="#cb12-2" tabindex="-1"></a>  <span class="at">from =</span> <span class="fu">c</span>(<span class="st">&quot;Home&quot;</span>, <span class="st">&quot;NoindexPage&quot;</span>, <span class="st">&quot;NoindexPage&quot;</span>),</span>
+<span id="cb12-3"><a href="#cb12-3" tabindex="-1"></a>  <span class="at">to =</span> <span class="fu">c</span>(<span class="st">&quot;NoindexPage&quot;</span>, <span class="st">&quot;A&quot;</span>, <span class="st">&quot;B&quot;</span>)</span>
+<span id="cb12-4"><a href="#cb12-4" tabindex="-1"></a>)</span>
+<span id="cb12-5"><a href="#cb12-5" tabindex="-1"></a></span>
+<span id="cb12-6"><a href="#cb12-6" tabindex="-1"></a>idx_status <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(</span>
+<span id="cb12-7"><a href="#cb12-7" tabindex="-1"></a>  <span class="at">url =</span> <span class="st">&quot;NoindexPage&quot;</span>,</span>
+<span id="cb12-8"><a href="#cb12-8" tabindex="-1"></a>  <span class="at">indexability_status =</span> <span class="st">&quot;noindex&quot;</span></span>
+<span id="cb12-9"><a href="#cb12-9" tabindex="-1"></a>)</span>
+<span id="cb12-10"><a href="#cb12-10" tabindex="-1"></a></span>
+<span id="cb12-11"><a href="#cb12-11" tabindex="-1"></a>pr <span class="ot">&lt;-</span> <span class="fu">pagerank</span>(edges,</span>
+<span id="cb12-12"><a href="#cb12-12" tabindex="-1"></a>  <span class="at">indexability_df =</span> idx_status,</span>
+<span id="cb12-13"><a href="#cb12-13" tabindex="-1"></a>  <span class="at">clean_edge_urls =</span> <span class="cn">FALSE</span></span>
+<span id="cb12-14"><a href="#cb12-14" tabindex="-1"></a>)</span>
+<span id="cb12-15"><a href="#cb12-15" tabindex="-1"></a><span class="fu">print</span>(pr)</span>
+<span id="cb12-16"><a href="#cb12-16" tabindex="-1"></a><span class="co">#&gt;     node_name pagerank page_state wasted_mass</span></span>
+<span id="cb12-17"><a href="#cb12-17" tabindex="-1"></a><span class="co">#&gt; 1        Home   0.1500       live      0.0000</span></span>
+<span id="cb12-18"><a href="#cb12-18" tabindex="-1"></a><span class="co">#&gt; 2 NoindexPage   0.1275    noindex      0.7225</span></span></code></pre></div>
+</div>
+<div id="robots.txt-blocked-pages" class="section level3">
+<h3>robots.txt blocked pages</h3>
+<p>A robots.txt-blocked page receives inbound PageRank but cannot pass
+it outbound (Google can’t see the links). Its outgoing budget routes to
+the shared waste sink; <code>robots_blocked_action</code> controls only
+whether the page is shown or removed:</p>
+<div class="sourceCode" id="cb13"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" tabindex="-1"></a>edges <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(</span>
+<span id="cb13-2"><a href="#cb13-2" tabindex="-1"></a>  <span class="at">from =</span> <span class="fu">c</span>(<span class="st">&quot;Home&quot;</span>, <span class="st">&quot;Blocked&quot;</span>, <span class="st">&quot;A&quot;</span>),</span>
+<span id="cb13-3"><a href="#cb13-3" tabindex="-1"></a>  <span class="at">to =</span> <span class="fu">c</span>(<span class="st">&quot;Blocked&quot;</span>, <span class="st">&quot;A&quot;</span>, <span class="st">&quot;Home&quot;</span>)</span>
+<span id="cb13-4"><a href="#cb13-4" tabindex="-1"></a>)</span>
+<span id="cb13-5"><a href="#cb13-5" tabindex="-1"></a></span>
+<span id="cb13-6"><a href="#cb13-6" tabindex="-1"></a>idx_status <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(</span>
+<span id="cb13-7"><a href="#cb13-7" tabindex="-1"></a>  <span class="at">url =</span> <span class="st">&quot;Blocked&quot;</span>,</span>
+<span id="cb13-8"><a href="#cb13-8" tabindex="-1"></a>  <span class="at">indexability_status =</span> <span class="st">&quot;Blocked by robots.txt&quot;</span></span>
+<span id="cb13-9"><a href="#cb13-9" tabindex="-1"></a>)</span>
+<span id="cb13-10"><a href="#cb13-10" tabindex="-1"></a></span>
+<span id="cb13-11"><a href="#cb13-11" tabindex="-1"></a><span class="co"># &quot;show&quot; (default): blocked page is shown with the authority it collects</span></span>
+<span id="cb13-12"><a href="#cb13-12" tabindex="-1"></a>pr_show <span class="ot">&lt;-</span> <span class="fu">pagerank</span>(edges,</span>
+<span id="cb13-13"><a href="#cb13-13" tabindex="-1"></a>  <span class="at">indexability_df =</span> idx_status,</span>
+<span id="cb13-14"><a href="#cb13-14" tabindex="-1"></a>  <span class="at">robots_blocked_action =</span> <span class="st">&quot;show&quot;</span>,</span>
+<span id="cb13-15"><a href="#cb13-15" tabindex="-1"></a>  <span class="at">clean_edge_urls =</span> <span class="cn">FALSE</span></span>
+<span id="cb13-16"><a href="#cb13-16" tabindex="-1"></a>)</span>
+<span id="cb13-17"><a href="#cb13-17" tabindex="-1"></a><span class="fu">print</span>(pr_show)</span>
+<span id="cb13-18"><a href="#cb13-18" tabindex="-1"></a><span class="co">#&gt;   node_name  pagerank     page_state wasted_mass</span></span>
+<span id="cb13-19"><a href="#cb13-19" tabindex="-1"></a><span class="co">#&gt; 1         A 0.0750000           live   0.0000000</span></span>
+<span id="cb13-20"><a href="#cb13-20" tabindex="-1"></a><span class="co">#&gt; 2   Blocked 0.1179375 robots_blocked   0.6683125</span></span>
+<span id="cb13-21"><a href="#cb13-21" tabindex="-1"></a><span class="co">#&gt; 3      Home 0.1387500           live   0.0000000</span></span>
+<span id="cb13-22"><a href="#cb13-22" tabindex="-1"></a></span>
+<span id="cb13-23"><a href="#cb13-23" tabindex="-1"></a><span class="co"># &quot;vanish&quot;: blocked page removed from results (its own mass booked as hidden)</span></span>
+<span id="cb13-24"><a href="#cb13-24" tabindex="-1"></a>pr_vanish <span class="ot">&lt;-</span> <span class="fu">pagerank</span>(edges,</span>
+<span id="cb13-25"><a href="#cb13-25" tabindex="-1"></a>  <span class="at">indexability_df =</span> idx_status,</span>
+<span id="cb13-26"><a href="#cb13-26" tabindex="-1"></a>  <span class="at">robots_blocked_action =</span> <span class="st">&quot;vanish&quot;</span>,</span>
+<span id="cb13-27"><a href="#cb13-27" tabindex="-1"></a>  <span class="at">clean_edge_urls =</span> <span class="cn">FALSE</span></span>
+<span id="cb13-28"><a href="#cb13-28" tabindex="-1"></a>)</span>
+<span id="cb13-29"><a href="#cb13-29" tabindex="-1"></a><span class="fu">print</span>(pr_vanish)</span>
+<span id="cb13-30"><a href="#cb13-30" tabindex="-1"></a><span class="co">#&gt;   node_name pagerank page_state wasted_mass</span></span>
+<span id="cb13-31"><a href="#cb13-31" tabindex="-1"></a><span class="co">#&gt; 1         A  0.07500       live           0</span></span>
+<span id="cb13-32"><a href="#cb13-32" tabindex="-1"></a><span class="co">#&gt; 2      Home  0.13875       live           0</span></span></code></pre></div>
+<p>The <code>page_state</code> column (present whenever
+<code>indexability_df</code> or <code>status_df</code> is supplied) tags
+each visible page as <code>live</code>, <code>noindex</code>,
+<code>robots_blocked</code>, or <code>response_dead</code>, so the
+wasted-mass class is attributable per URL.</p>
+</div>
+</div>
+<div id="weighted-edges" class="section level2">
+<h2>Weighted Edges</h2>
+<p>Pass a <code>weight_col</code> to use link weights (e.g., number of
+links, link position scores) in the PageRank calculation:</p>
+<div class="sourceCode" id="cb14"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" tabindex="-1"></a>edges <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(</span>
+<span id="cb14-2"><a href="#cb14-2" tabindex="-1"></a>  <span class="at">from =</span> <span class="fu">c</span>(<span class="st">&quot;A&quot;</span>, <span class="st">&quot;A&quot;</span>, <span class="st">&quot;B&quot;</span>),</span>
+<span id="cb14-3"><a href="#cb14-3" tabindex="-1"></a>  <span class="at">to =</span> <span class="fu">c</span>(<span class="st">&quot;B&quot;</span>, <span class="st">&quot;C&quot;</span>, <span class="st">&quot;C&quot;</span>),</span>
+<span id="cb14-4"><a href="#cb14-4" tabindex="-1"></a>  <span class="at">weight =</span> <span class="fu">c</span>(<span class="dv">3</span>, <span class="dv">1</span>, <span class="dv">1</span>)</span>
+<span id="cb14-5"><a href="#cb14-5" tabindex="-1"></a>)</span>
+<span id="cb14-6"><a href="#cb14-6" tabindex="-1"></a></span>
+<span id="cb14-7"><a href="#cb14-7" tabindex="-1"></a>pr <span class="ot">&lt;-</span> <span class="fu">pagerank</span>(edges, <span class="at">weight_col =</span> <span class="st">&quot;weight&quot;</span>, <span class="at">clean_edge_urls =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb14-8"><a href="#cb14-8" tabindex="-1"></a><span class="fu">print</span>(pr)</span>
+<span id="cb14-9"><a href="#cb14-9" tabindex="-1"></a><span class="co">#&gt;   node_name  pagerank</span></span>
+<span id="cb14-10"><a href="#cb14-10" tabindex="-1"></a><span class="co">#&gt; 1         A 0.1907714</span></span>
+<span id="cb14-11"><a href="#cb14-11" tabindex="-1"></a><span class="co">#&gt; 2         B 0.3123882</span></span>
+<span id="cb14-12"><a href="#cb14-12" tabindex="-1"></a><span class="co">#&gt; 3         C 0.4968403</span></span></code></pre></div>
+<p>Duplicate <code>from -&gt; to</code> rows are a separate modeling
+choice. By default, <code>pagerank()</code> uses
+<code>duplicate_edge_policy = &quot;collapse&quot;</code>: repeated links from one
+source page to the same destination become one binary destination edge,
+matching the common textbook PageRank convention and preserving legacy
+results. Use <code>duplicate_edge_policy = &quot;aggregate&quot;</code> when
+duplicate rows carry additive weights that should be summed, or
+<code>&quot;count_instances&quot;</code> when each repeated link slot should
+increase the transition probability to that target.</p>
+</div>
+<div id="domain-filtering" class="section level2">
+<h2>Domain Filtering</h2>
+<p><code>filter_links_by_domain()</code> scopes edge lists by domain,
+useful for separating internal vs. external links:</p>
+<div class="sourceCode" id="cb15"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" tabindex="-1"></a>edges <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(</span>
+<span id="cb15-2"><a href="#cb15-2" tabindex="-1"></a>  <span class="at">from =</span> <span class="fu">c</span>(</span>
+<span id="cb15-3"><a href="#cb15-3" tabindex="-1"></a>    <span class="st">&quot;example.com/a&quot;</span>, <span class="st">&quot;example.com/b&quot;</span>,</span>
+<span id="cb15-4"><a href="#cb15-4" tabindex="-1"></a>    <span class="st">&quot;other.com/c&quot;</span></span>
+<span id="cb15-5"><a href="#cb15-5" tabindex="-1"></a>  ),</span>
+<span id="cb15-6"><a href="#cb15-6" tabindex="-1"></a>  <span class="at">to =</span> <span class="fu">c</span>(</span>
+<span id="cb15-7"><a href="#cb15-7" tabindex="-1"></a>    <span class="st">&quot;example.com/b&quot;</span>, <span class="st">&quot;other.com/d&quot;</span>,</span>
+<span id="cb15-8"><a href="#cb15-8" tabindex="-1"></a>    <span class="st">&quot;example.com/a&quot;</span></span>
+<span id="cb15-9"><a href="#cb15-9" tabindex="-1"></a>  )</span>
+<span id="cb15-10"><a href="#cb15-10" tabindex="-1"></a>)</span>
+<span id="cb15-11"><a href="#cb15-11" tabindex="-1"></a></span>
+<span id="cb15-12"><a href="#cb15-12" tabindex="-1"></a><span class="co"># Keep only internal links</span></span>
+<span id="cb15-13"><a href="#cb15-13" tabindex="-1"></a>internal <span class="ot">&lt;-</span> <span class="fu">filter_links_by_domain</span>(edges, <span class="at">keep_domains =</span> <span class="st">&quot;example.com&quot;</span>)</span>
+<span id="cb15-14"><a href="#cb15-14" tabindex="-1"></a><span class="fu">print</span>(internal)</span>
+<span id="cb15-15"><a href="#cb15-15" tabindex="-1"></a><span class="co">#&gt;            from            to</span></span>
+<span id="cb15-16"><a href="#cb15-16" tabindex="-1"></a><span class="co">#&gt; 1 example.com/a example.com/b</span></span></code></pre></div>
+</div>
+<div id="hits-hub-and-authority" class="section level2">
+<h2>HITS hub and authority</h2>
+<p><code>hits()</code> computes Kleinberg’s HITS hub and authority
+scores over the <em>same</em> cleaned, redirect/canonical-folded,
+domain-filtered, deduplicated link graph as <code>pagerank()</code>.
+Because both share the identity pipeline, you can join hub, authority,
+and PageRank on <code>node_name</code> directly.</p>
+<p>The two scores reinforce each other: a good
+<strong>authority</strong> is pointed to by good <strong>hubs</strong>,
+and a good hub points to good authorities. Formally, with adjacency
+matrix <code>A</code>, authority is the dominant eigenvector of
+<code>A^T A</code> and hub is the dominant eigenvector of
+<code>A A^T</code>.</p>
+<div class="sourceCode" id="cb16"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1" tabindex="-1"></a>edges <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(</span>
+<span id="cb16-2"><a href="#cb16-2" tabindex="-1"></a>  <span class="at">from =</span> <span class="fu">c</span>(<span class="st">&quot;A&quot;</span>, <span class="st">&quot;A&quot;</span>, <span class="st">&quot;B&quot;</span>),</span>
+<span id="cb16-3"><a href="#cb16-3" tabindex="-1"></a>  <span class="at">to =</span> <span class="fu">c</span>(<span class="st">&quot;B&quot;</span>, <span class="st">&quot;C&quot;</span>, <span class="st">&quot;C&quot;</span>)</span>
+<span id="cb16-4"><a href="#cb16-4" tabindex="-1"></a>)</span>
+<span id="cb16-5"><a href="#cb16-5" tabindex="-1"></a></span>
+<span id="cb16-6"><a href="#cb16-6" tabindex="-1"></a><span class="co"># A only points out (pure hub); C is only pointed to (pure authority).</span></span>
+<span id="cb16-7"><a href="#cb16-7" tabindex="-1"></a><span class="fu">hits</span>(edges, <span class="at">clean_edge_urls =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb16-8"><a href="#cb16-8" tabindex="-1"></a><span class="co">#&gt;   node_name      hub authority</span></span>
+<span id="cb16-9"><a href="#cb16-9" tabindex="-1"></a><span class="co">#&gt; 1         A 1.000000  0.000000</span></span>
+<span id="cb16-10"><a href="#cb16-10" tabindex="-1"></a><span class="co">#&gt; 2         B 0.618034  0.618034</span></span>
+<span id="cb16-11"><a href="#cb16-11" tabindex="-1"></a><span class="co">#&gt; 3         C 0.000000  1.000000</span></span></code></pre></div>
+<p>Scores are scaled so each maximum is <code>1</code>
+(<code>scale = TRUE</code>, the conventional HITS reporting). HITS
+already captures both directions of authority flow, so there is no
+<code>reverse</code> flag, and the PageRank-only forward-flow devices
+(nofollow evaporation, indexability transforms, the TIPR teleport prior)
+are not exposed.</p>
+<p><strong>Whole-graph caveat.</strong> Kleinberg’s original HITS ran on
+a small, query-focused base set of pages. <code>hits()</code> runs on
+the full (or domain-filtered) site graph <code>pagerankr</code>
+assembles, so treat the scores as site-wide structural centralities
+rather than query-relevance scores.</p>
+</div>
+<div id="salsa-hub-and-authority" class="section level2">
+<h2>SALSA hub and authority</h2>
+<p><code>salsa()</code> computes Lempel &amp; Moran’s (2001) SALSA hub
+and authority scores over the <em>same</em> identity pipeline as
+<code>pagerank()</code> and <code>hits()</code>, so all three join on
+<code>node_name</code>. SALSA is the <strong>stochastic</strong> cousin
+of HITS: it replaces the mutual-reinforcement iteration with two random
+walks on the bipartite hub/authority graph, so the scores are stationary
+distributions rather than the dominant eigenvectors HITS returns. On a
+connected graph this collapses to a degree-based closed form — authority
+<code>= d_in / W</code>, hub <code>= d_out / W</code>, where
+<code>W</code> is the edge count — so no eigenvector iteration is
+needed.</p>
+<div class="sourceCode" id="cb17"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb17-1"><a href="#cb17-1" tabindex="-1"></a>edges <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(</span>
+<span id="cb17-2"><a href="#cb17-2" tabindex="-1"></a>  <span class="at">from =</span> <span class="fu">c</span>(<span class="st">&quot;A&quot;</span>, <span class="st">&quot;A&quot;</span>, <span class="st">&quot;B&quot;</span>),</span>
+<span id="cb17-3"><a href="#cb17-3" tabindex="-1"></a>  <span class="at">to =</span> <span class="fu">c</span>(<span class="st">&quot;B&quot;</span>, <span class="st">&quot;C&quot;</span>, <span class="st">&quot;C&quot;</span>)</span>
+<span id="cb17-4"><a href="#cb17-4" tabindex="-1"></a>)</span>
+<span id="cb17-5"><a href="#cb17-5" tabindex="-1"></a></span>
+<span id="cb17-6"><a href="#cb17-6" tabindex="-1"></a><span class="co"># A only points out (pure hub); C is only pointed to (pure authority).</span></span>
+<span id="cb17-7"><a href="#cb17-7" tabindex="-1"></a><span class="fu">salsa</span>(edges, <span class="at">clean_edge_urls =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb17-8"><a href="#cb17-8" tabindex="-1"></a><span class="co">#&gt;   node_name       hub authority</span></span>
+<span id="cb17-9"><a href="#cb17-9" tabindex="-1"></a><span class="co">#&gt; 1         A 0.6666667        NA</span></span>
+<span id="cb17-10"><a href="#cb17-10" tabindex="-1"></a><span class="co">#&gt; 2         B 0.3333333 0.3333333</span></span>
+<span id="cb17-11"><a href="#cb17-11" tabindex="-1"></a><span class="co">#&gt; 3         C        NA 0.6666667</span></span></code></pre></div>
+<p>Each side is a probability distribution that sums to <code>1</code>.
+When the graph splits into several weakly connected components, each
+component’s scores are renormalized within the component and then
+reweighted by that component’s share of the side (Lempel &amp; Moran
+2001, Proposition 6) — required so scores stay comparable across orphan
+page clusters.</p>
+<p><strong>Coverage differs from PageRank.</strong> The hub side holds
+only pages with outlinks and the authority side only pages with inlinks,
+so <code>hub</code> is <code>NA</code> for a pure sink and
+<code>authority</code> is <code>NA</code> for a pure source (an isolate
+is <code>NA</code> for both). v1 is unweighted; like <code>hits()</code>
+the forward-flow devices (nofollow, indexability, the TIPR prior,
+<code>reverse</code>) are not exposed. As with <code>hits()</code>,
+these are site-wide structural centralities, a documented site-graph
+adaptation of the original focused-subgraph algorithm.</p>
+</div>
+<div id="model-comparison" class="section level2">
+<h2>Model Comparison</h2>
+<div id="comparing-two-models" class="section level3">
+<h3>Comparing two models</h3>
+<div class="sourceCode" id="cb18"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb18-1"><a href="#cb18-1" tabindex="-1"></a>edges <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(</span>
+<span id="cb18-2"><a href="#cb18-2" tabindex="-1"></a>  <span class="at">from =</span> <span class="fu">c</span>(<span class="st">&quot;A&quot;</span>, <span class="st">&quot;B&quot;</span>, <span class="st">&quot;C&quot;</span>, <span class="st">&quot;D&quot;</span>),</span>
+<span id="cb18-3"><a href="#cb18-3" tabindex="-1"></a>  <span class="at">to =</span> <span class="fu">c</span>(<span class="st">&quot;B&quot;</span>, <span class="st">&quot;C&quot;</span>, <span class="st">&quot;D&quot;</span>, <span class="st">&quot;A&quot;</span>)</span>
+<span id="cb18-4"><a href="#cb18-4" tabindex="-1"></a>)</span>
+<span id="cb18-5"><a href="#cb18-5" tabindex="-1"></a></span>
+<span id="cb18-6"><a href="#cb18-6" tabindex="-1"></a>pr_85 <span class="ot">&lt;-</span> <span class="fu">pagerank</span>(edges, <span class="at">damping =</span> <span class="fl">0.85</span>, <span class="at">clean_edge_urls =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb18-7"><a href="#cb18-7" tabindex="-1"></a>pr_90 <span class="ot">&lt;-</span> <span class="fu">pagerank</span>(edges, <span class="at">damping =</span> <span class="fl">0.90</span>, <span class="at">clean_edge_urls =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb18-8"><a href="#cb18-8" tabindex="-1"></a></span>
+<span id="cb18-9"><a href="#cb18-9" tabindex="-1"></a>diff <span class="ot">&lt;-</span> <span class="fu">compare_pagerank</span>(pr_85, pr_90, <span class="at">label_a =</span> <span class="st">&quot;d=0.85&quot;</span>, <span class="at">label_b =</span> <span class="st">&quot;d=0.90&quot;</span>)</span>
+<span id="cb18-10"><a href="#cb18-10" tabindex="-1"></a><span class="fu">print</span>(diff)</span>
+<span id="cb18-11"><a href="#cb18-11" tabindex="-1"></a><span class="co">#&gt;   node_name pagerank_d=0.85 pagerank_d=0.90 delta pct_change rank_d=0.85</span></span>
+<span id="cb18-12"><a href="#cb18-12" tabindex="-1"></a><span class="co">#&gt; 1         A            0.25            0.25     0          0           1</span></span>
+<span id="cb18-13"><a href="#cb18-13" tabindex="-1"></a><span class="co">#&gt; 2         B            0.25            0.25     0          0           1</span></span>
+<span id="cb18-14"><a href="#cb18-14" tabindex="-1"></a><span class="co">#&gt; 3         C            0.25            0.25     0          0           1</span></span>
+<span id="cb18-15"><a href="#cb18-15" tabindex="-1"></a><span class="co">#&gt; 4         D            0.25            0.25     0          0           1</span></span>
+<span id="cb18-16"><a href="#cb18-16" tabindex="-1"></a><span class="co">#&gt;   rank_d=0.90 rank_delta</span></span>
+<span id="cb18-17"><a href="#cb18-17" tabindex="-1"></a><span class="co">#&gt; 1           1          0</span></span>
+<span id="cb18-18"><a href="#cb18-18" tabindex="-1"></a><span class="co">#&gt; 2           1          0</span></span>
+<span id="cb18-19"><a href="#cb18-19" tabindex="-1"></a><span class="co">#&gt; 3           1          0</span></span>
+<span id="cb18-20"><a href="#cb18-20" tabindex="-1"></a><span class="co">#&gt; 4           1          0</span></span>
+<span id="cb18-21"><a href="#cb18-21" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">&quot;</span><span class="sc">\n</span><span class="st">Correlation summary:</span><span class="sc">\n</span><span class="st">&quot;</span>)</span>
+<span id="cb18-22"><a href="#cb18-22" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb18-23"><a href="#cb18-23" tabindex="-1"></a><span class="co">#&gt; Correlation summary:</span></span>
+<span id="cb18-24"><a href="#cb18-24" tabindex="-1"></a><span class="fu">print</span>(<span class="fu">attr</span>(diff, <span class="st">&quot;summary&quot;</span>))</span>
+<span id="cb18-25"><a href="#cb18-25" tabindex="-1"></a><span class="co">#&gt; $spearman_rho</span></span>
+<span id="cb18-26"><a href="#cb18-26" tabindex="-1"></a><span class="co">#&gt; [1] NA</span></span>
+<span id="cb18-27"><a href="#cb18-27" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb18-28"><a href="#cb18-28" tabindex="-1"></a><span class="co">#&gt; $mean_abs_delta</span></span>
+<span id="cb18-29"><a href="#cb18-29" tabindex="-1"></a><span class="co">#&gt; [1] 0</span></span>
+<span id="cb18-30"><a href="#cb18-30" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb18-31"><a href="#cb18-31" tabindex="-1"></a><span class="co">#&gt; $nodes_gained</span></span>
+<span id="cb18-32"><a href="#cb18-32" tabindex="-1"></a><span class="co">#&gt; [1] 0</span></span>
+<span id="cb18-33"><a href="#cb18-33" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb18-34"><a href="#cb18-34" tabindex="-1"></a><span class="co">#&gt; $nodes_lost</span></span>
+<span id="cb18-35"><a href="#cb18-35" tabindex="-1"></a><span class="co">#&gt; [1] 0</span></span></code></pre></div>
+</div>
+<div id="parameter-grid-search" class="section level3">
+<h3>Parameter grid search</h3>
+<p>Run PageRank across multiple parameter combinations to find the most
+informative model:</p>
+<div class="sourceCode" id="cb19"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb19-1"><a href="#cb19-1" tabindex="-1"></a>edges <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(</span>
+<span id="cb19-2"><a href="#cb19-2" tabindex="-1"></a>  <span class="at">from =</span> <span class="fu">c</span>(<span class="st">&quot;A&quot;</span>, <span class="st">&quot;A&quot;</span>, <span class="st">&quot;B&quot;</span>, <span class="st">&quot;C&quot;</span>),</span>
+<span id="cb19-3"><a href="#cb19-3" tabindex="-1"></a>  <span class="at">to =</span> <span class="fu">c</span>(<span class="st">&quot;B&quot;</span>, <span class="st">&quot;C&quot;</span>, <span class="st">&quot;C&quot;</span>, <span class="st">&quot;A&quot;</span>)</span>
+<span id="cb19-4"><a href="#cb19-4" tabindex="-1"></a>)</span>
+<span id="cb19-5"><a href="#cb19-5" tabindex="-1"></a></span>
+<span id="cb19-6"><a href="#cb19-6" tabindex="-1"></a>grid <span class="ot">&lt;-</span> <span class="fu">auto_grid</span>(<span class="at">damping =</span> <span class="fu">c</span>(<span class="fl">0.75</span>, <span class="fl">0.85</span>, <span class="fl">0.95</span>))</span>
+<span id="cb19-7"><a href="#cb19-7" tabindex="-1"></a>results <span class="ot">&lt;-</span> <span class="fu">pagerank_grid</span>(edges, <span class="at">params_grid =</span> grid, <span class="at">clean_edge_urls =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb19-8"><a href="#cb19-8" tabindex="-1"></a></span>
+<span id="cb19-9"><a href="#cb19-9" tabindex="-1"></a><span class="co"># Analyze distribution metrics across the grid</span></span>
+<span id="cb19-10"><a href="#cb19-10" tabindex="-1"></a>analysis <span class="ot">&lt;-</span> <span class="fu">analyze_pagerank_grid</span>(results)</span>
+<span id="cb19-11"><a href="#cb19-11" tabindex="-1"></a><span class="fu">print</span>(analysis)</span>
+<span id="cb19-12"><a href="#cb19-12" tabindex="-1"></a><span class="co">#&gt;       model_id num_nodes pr_sum    pr_max   pr_gini pr_entropy pr_top10_share</span></span>
+<span id="cb19-13"><a href="#cb19-13" tabindex="-1"></a><span class="co">#&gt; 1 damping=0.75         3      1 0.3948718 0.1128205   1.070547      0.3948718</span></span>
+<span id="cb19-14"><a href="#cb19-14" tabindex="-1"></a><span class="co">#&gt; 2 damping=0.85         3      1 0.3973997 0.1217260   1.064454      0.3973997</span></span>
+<span id="cb19-15"><a href="#cb19-15" tabindex="-1"></a><span class="co">#&gt; 3 damping=0.95         3      1 0.3992712 0.1296778   1.058139      0.3992712</span></span></code></pre></div>
+</div>
+<div id="distribution-metrics" class="section level3">
+<h3>Distribution metrics</h3>
+<p>Standalone metrics for any PageRank vector:</p>
+<div class="sourceCode" id="cb20"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb20-1"><a href="#cb20-1" tabindex="-1"></a>pr <span class="ot">&lt;-</span> <span class="fu">pagerank</span>(edges, <span class="at">clean_edge_urls =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb20-2"><a href="#cb20-2" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">&quot;Gini coefficient:&quot;</span>, <span class="fu">pr_gini</span>(pr<span class="sc">$</span>pagerank), <span class="st">&quot;</span><span class="sc">\n</span><span class="st">&quot;</span>)</span>
+<span id="cb20-3"><a href="#cb20-3" tabindex="-1"></a><span class="co">#&gt; Gini coefficient: 0.121726</span></span>
+<span id="cb20-4"><a href="#cb20-4" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">&quot;Entropy:&quot;</span>, <span class="fu">pr_entropy</span>(pr<span class="sc">$</span>pagerank), <span class="st">&quot;</span><span class="sc">\n</span><span class="st">&quot;</span>)</span>
+<span id="cb20-5"><a href="#cb20-5" tabindex="-1"></a><span class="co">#&gt; Entropy: 1.064454</span></span>
+<span id="cb20-6"><a href="#cb20-6" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">&quot;Top-1 share:&quot;</span>, <span class="fu">pr_top_k_share</span>(pr<span class="sc">$</span>pagerank, <span class="at">k =</span> <span class="dv">1</span>), <span class="st">&quot;</span><span class="sc">\n</span><span class="st">&quot;</span>)</span>
+<span id="cb20-7"><a href="#cb20-7" tabindex="-1"></a><span class="co">#&gt; Top-1 share: 1</span></span></code></pre></div>
+</div>
+</div>
+<div id="simulating-changes" class="section level2">
+<h2>Simulating Changes</h2>
+<p>A common SEO workflow is asking “what happens to PageRank if I add
+these links, remove those links, or implement these redirects?”</p>
+<div id="adding-links" class="section level3">
+<h3>Adding links</h3>
+<div class="sourceCode" id="cb21"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb21-1"><a href="#cb21-1" tabindex="-1"></a>site_links <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(</span>
+<span id="cb21-2"><a href="#cb21-2" tabindex="-1"></a>  <span class="at">from =</span> <span class="fu">c</span>(<span class="st">&quot;Home&quot;</span>, <span class="st">&quot;Home&quot;</span>, <span class="st">&quot;About&quot;</span>, <span class="st">&quot;Blog&quot;</span>),</span>
+<span id="cb21-3"><a href="#cb21-3" tabindex="-1"></a>  <span class="at">to =</span> <span class="fu">c</span>(<span class="st">&quot;About&quot;</span>, <span class="st">&quot;Blog&quot;</span>, <span class="st">&quot;Home&quot;</span>, <span class="st">&quot;Home&quot;</span>)</span>
+<span id="cb21-4"><a href="#cb21-4" tabindex="-1"></a>)</span>
+<span id="cb21-5"><a href="#cb21-5" tabindex="-1"></a></span>
+<span id="cb21-6"><a href="#cb21-6" tabindex="-1"></a>impact <span class="ot">&lt;-</span> <span class="fu">simulate_changes</span>(</span>
+<span id="cb21-7"><a href="#cb21-7" tabindex="-1"></a>  site_links,</span>
+<span id="cb21-8"><a href="#cb21-8" tabindex="-1"></a>  <span class="at">add_links_df =</span> <span class="fu">data.frame</span>(</span>
+<span id="cb21-9"><a href="#cb21-9" tabindex="-1"></a>    <span class="at">from =</span> <span class="st">&quot;Blog&quot;</span>, <span class="at">to =</span> <span class="st">&quot;About&quot;</span></span>
+<span id="cb21-10"><a href="#cb21-10" tabindex="-1"></a>  ),</span>
+<span id="cb21-11"><a href="#cb21-11" tabindex="-1"></a>  <span class="at">clean_edge_urls =</span> <span class="cn">FALSE</span></span>
+<span id="cb21-12"><a href="#cb21-12" tabindex="-1"></a>)</span>
+<span id="cb21-13"><a href="#cb21-13" tabindex="-1"></a><span class="fu">print</span>(impact)</span>
+<span id="cb21-14"><a href="#cb21-14" tabindex="-1"></a><span class="co">#&gt;   node_name pagerank_baseline pagerank_proposed       delta pct_change</span></span>
+<span id="cb21-15"><a href="#cb21-15" tabindex="-1"></a><span class="co">#&gt; 1     About         0.2567568         0.3333333  0.07657658  29.824561</span></span>
+<span id="cb21-16"><a href="#cb21-16" tabindex="-1"></a><span class="co">#&gt; 2      Home         0.4864865         0.4327485 -0.05373795 -11.046134</span></span>
+<span id="cb21-17"><a href="#cb21-17" tabindex="-1"></a><span class="co">#&gt; 3      Blog         0.2567568         0.2339181 -0.02283863  -8.895045</span></span>
+<span id="cb21-18"><a href="#cb21-18" tabindex="-1"></a><span class="co">#&gt;   rank_baseline rank_proposed rank_delta node_status</span></span>
+<span id="cb21-19"><a href="#cb21-19" tabindex="-1"></a><span class="co">#&gt; 1             2             2          0      normal</span></span>
+<span id="cb21-20"><a href="#cb21-20" tabindex="-1"></a><span class="co">#&gt; 2             1             1          0      normal</span></span>
+<span id="cb21-21"><a href="#cb21-21" tabindex="-1"></a><span class="co">#&gt; 3             2             3         -1      normal</span></span></code></pre></div>
+</div>
+<div id="removing-links" class="section level3">
+<h3>Removing links</h3>
+<div class="sourceCode" id="cb22"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb22-1"><a href="#cb22-1" tabindex="-1"></a>impact_remove <span class="ot">&lt;-</span> <span class="fu">simulate_changes</span>(</span>
+<span id="cb22-2"><a href="#cb22-2" tabindex="-1"></a>  site_links,</span>
+<span id="cb22-3"><a href="#cb22-3" tabindex="-1"></a>  <span class="at">remove_links_df =</span> <span class="fu">data.frame</span>(</span>
+<span id="cb22-4"><a href="#cb22-4" tabindex="-1"></a>    <span class="at">from =</span> <span class="st">&quot;Home&quot;</span>, <span class="at">to =</span> <span class="st">&quot;Blog&quot;</span></span>
+<span id="cb22-5"><a href="#cb22-5" tabindex="-1"></a>  ),</span>
+<span id="cb22-6"><a href="#cb22-6" tabindex="-1"></a>  <span class="at">clean_edge_urls =</span> <span class="cn">FALSE</span></span>
+<span id="cb22-7"><a href="#cb22-7" tabindex="-1"></a>)</span>
+<span id="cb22-8"><a href="#cb22-8" tabindex="-1"></a><span class="fu">print</span>(impact_remove)</span>
+<span id="cb22-9"><a href="#cb22-9" tabindex="-1"></a><span class="co">#&gt;   node_name pagerank_baseline pagerank_proposed      delta pct_change</span></span>
+<span id="cb22-10"><a href="#cb22-10" tabindex="-1"></a><span class="co">#&gt; 1     About         0.2567568         0.4635135  0.2067568   80.52632</span></span>
+<span id="cb22-11"><a href="#cb22-11" tabindex="-1"></a><span class="co">#&gt; 2      Blog         0.2567568         0.0500000 -0.2067568  -80.52632</span></span>
+<span id="cb22-12"><a href="#cb22-12" tabindex="-1"></a><span class="co">#&gt; 3      Home         0.4864865         0.4864865  0.0000000    0.00000</span></span>
+<span id="cb22-13"><a href="#cb22-13" tabindex="-1"></a><span class="co">#&gt;   rank_baseline rank_proposed rank_delta node_status</span></span>
+<span id="cb22-14"><a href="#cb22-14" tabindex="-1"></a><span class="co">#&gt; 1             2             2          0      normal</span></span>
+<span id="cb22-15"><a href="#cb22-15" tabindex="-1"></a><span class="co">#&gt; 2             2             3         -1      normal</span></span>
+<span id="cb22-16"><a href="#cb22-16" tabindex="-1"></a><span class="co">#&gt; 3             1             1          0      normal</span></span></code></pre></div>
+</div>
+<div id="simulating-redirects" class="section level3">
+<h3>Simulating redirects</h3>
+<p><code>redirect_urls_df</code> models a URL-level change: retiring a
+live page behind a redirect. It uses <strong>retire semantics</strong> —
+the source’s own outbound links are stripped before folding (an honest
+301 has no body), so the target inherits the source’s <em>inbound</em>
+authority only, never its outlinks. The source then leaves the proposed
+graph. A row for a source also <strong>overrides</strong> any existing
+redirect for it, so repointing an old redirect is a single change.</p>
+<div class="sourceCode" id="cb23"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb23-1"><a href="#cb23-1" tabindex="-1"></a><span class="co"># OldPage is live: Blog links to it, and it links out to Home. Retire it</span></span>
+<span id="cb23-2"><a href="#cb23-2" tabindex="-1"></a><span class="co"># behind a 301 to About. Its inbound authority (from Blog) passes to About;</span></span>
+<span id="cb23-3"><a href="#cb23-3" tabindex="-1"></a><span class="co"># its outlink to Home is dropped; OldPage leaves the proposed graph.</span></span>
+<span id="cb23-4"><a href="#cb23-4" tabindex="-1"></a>extended_links <span class="ot">&lt;-</span> <span class="fu">rbind</span>(site_links, <span class="fu">data.frame</span>(</span>
+<span id="cb23-5"><a href="#cb23-5" tabindex="-1"></a>  <span class="at">from =</span> <span class="fu">c</span>(<span class="st">&quot;Blog&quot;</span>, <span class="st">&quot;OldPage&quot;</span>),</span>
+<span id="cb23-6"><a href="#cb23-6" tabindex="-1"></a>  <span class="at">to =</span> <span class="fu">c</span>(<span class="st">&quot;OldPage&quot;</span>, <span class="st">&quot;Home&quot;</span>)</span>
+<span id="cb23-7"><a href="#cb23-7" tabindex="-1"></a>))</span>
+<span id="cb23-8"><a href="#cb23-8" tabindex="-1"></a></span>
+<span id="cb23-9"><a href="#cb23-9" tabindex="-1"></a>impact_redirect <span class="ot">&lt;-</span> <span class="fu">simulate_changes</span>(</span>
+<span id="cb23-10"><a href="#cb23-10" tabindex="-1"></a>  extended_links,</span>
+<span id="cb23-11"><a href="#cb23-11" tabindex="-1"></a>  <span class="at">redirect_urls_df =</span> <span class="fu">data.frame</span>(</span>
+<span id="cb23-12"><a href="#cb23-12" tabindex="-1"></a>    <span class="at">from =</span> <span class="st">&quot;OldPage&quot;</span>, <span class="at">to =</span> <span class="st">&quot;About&quot;</span></span>
+<span id="cb23-13"><a href="#cb23-13" tabindex="-1"></a>  ),</span>
+<span id="cb23-14"><a href="#cb23-14" tabindex="-1"></a>  <span class="at">clean_edge_urls =</span> <span class="cn">FALSE</span></span>
+<span id="cb23-15"><a href="#cb23-15" tabindex="-1"></a>)</span>
+<span id="cb23-16"><a href="#cb23-16" tabindex="-1"></a><span class="fu">print</span>(impact_redirect)</span>
+<span id="cb23-17"><a href="#cb23-17" tabindex="-1"></a><span class="co">#&gt;   node_name pagerank_baseline pagerank_proposed       delta pct_change</span></span>
+<span id="cb23-18"><a href="#cb23-18" tabindex="-1"></a><span class="co">#&gt; 1     About         0.2199138         0.3333333 0.113419514 51.5745276</span></span>
+<span id="cb23-19"><a href="#cb23-19" tabindex="-1"></a><span class="co">#&gt; 2      Blog         0.2199138         0.2339181 0.014004309  6.3680896</span></span>
+<span id="cb23-20"><a href="#cb23-20" tabindex="-1"></a><span class="co">#&gt; 3      Home         0.4292090         0.4327485 0.003539551  0.8246683</span></span>
+<span id="cb23-21"><a href="#cb23-21" tabindex="-1"></a><span class="co">#&gt; 4   OldPage         0.1309634                NA          NA         NA</span></span>
+<span id="cb23-22"><a href="#cb23-22" tabindex="-1"></a><span class="co">#&gt;   rank_baseline rank_proposed rank_delta node_status</span></span>
+<span id="cb23-23"><a href="#cb23-23" tabindex="-1"></a><span class="co">#&gt; 1             2             2          0      normal</span></span>
+<span id="cb23-24"><a href="#cb23-24" tabindex="-1"></a><span class="co">#&gt; 2             2             3         -1      normal</span></span>
+<span id="cb23-25"><a href="#cb23-25" tabindex="-1"></a><span class="co">#&gt; 3             1             1          0      normal</span></span>
+<span id="cb23-26"><a href="#cb23-26" tabindex="-1"></a><span class="co">#&gt; 4             4            NA         NA      normal</span></span></code></pre></div>
+<p>The output carries a <code>node_status</code> column
+(<code>&quot;normal&quot;</code>, or <code>&quot;new-target&quot;</code> for a page the
+changeset introduces) and a change manifest attribute describing what
+was applied:</p>
+<div class="sourceCode" id="cb24"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb24-1"><a href="#cb24-1" tabindex="-1"></a><span class="fu">attr</span>(impact_redirect, <span class="st">&quot;manifest&quot;</span>)<span class="sc">$</span>redirects_applied</span>
+<span id="cb24-2"><a href="#cb24-2" tabindex="-1"></a><span class="co">#&gt;      from    to</span></span>
+<span id="cb24-3"><a href="#cb24-3" tabindex="-1"></a><span class="co">#&gt; 1 OldPage About</span></span></code></pre></div>
+<p>Screaming Frog users get the same verbs through
+<code>simulate_changes_screaming_frog(bundle, ...)</code>, which reuses
+the bundle’s placement, nofollow, redirect, and canonical handling
+automatically.</p>
+</div>
+<div id="combined-changes" class="section level3">
+<h3>Combined changes</h3>
+<div class="sourceCode" id="cb25"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb25-1"><a href="#cb25-1" tabindex="-1"></a>impact_all <span class="ot">&lt;-</span> <span class="fu">simulate_changes</span>(</span>
+<span id="cb25-2"><a href="#cb25-2" tabindex="-1"></a>  site_links,</span>
+<span id="cb25-3"><a href="#cb25-3" tabindex="-1"></a>  <span class="at">add_links_df =</span> <span class="fu">data.frame</span>(</span>
+<span id="cb25-4"><a href="#cb25-4" tabindex="-1"></a>    <span class="at">from =</span> <span class="st">&quot;Blog&quot;</span>, <span class="at">to =</span> <span class="st">&quot;About&quot;</span></span>
+<span id="cb25-5"><a href="#cb25-5" tabindex="-1"></a>  ),</span>
+<span id="cb25-6"><a href="#cb25-6" tabindex="-1"></a>  <span class="at">remove_links_df =</span> <span class="fu">data.frame</span>(</span>
+<span id="cb25-7"><a href="#cb25-7" tabindex="-1"></a>    <span class="at">from =</span> <span class="st">&quot;Home&quot;</span>, <span class="at">to =</span> <span class="st">&quot;Blog&quot;</span></span>
+<span id="cb25-8"><a href="#cb25-8" tabindex="-1"></a>  ),</span>
+<span id="cb25-9"><a href="#cb25-9" tabindex="-1"></a>  <span class="at">clean_edge_urls =</span> <span class="cn">FALSE</span></span>
+<span id="cb25-10"><a href="#cb25-10" tabindex="-1"></a>)</span>
+<span id="cb25-11"><a href="#cb25-11" tabindex="-1"></a><span class="fu">print</span>(impact_all)</span>
+<span id="cb25-12"><a href="#cb25-12" tabindex="-1"></a><span class="co">#&gt;   node_name pagerank_baseline pagerank_proposed       delta pct_change</span></span>
+<span id="cb25-13"><a href="#cb25-13" tabindex="-1"></a><span class="co">#&gt; 1     About         0.2567568             0.475  0.21824324  85.000000</span></span>
+<span id="cb25-14"><a href="#cb25-14" tabindex="-1"></a><span class="co">#&gt; 2      Blog         0.2567568             0.050 -0.20675676 -80.526316</span></span>
+<span id="cb25-15"><a href="#cb25-15" tabindex="-1"></a><span class="co">#&gt; 3      Home         0.4864865             0.475 -0.01148649  -2.361111</span></span>
+<span id="cb25-16"><a href="#cb25-16" tabindex="-1"></a><span class="co">#&gt;   rank_baseline rank_proposed rank_delta node_status</span></span>
+<span id="cb25-17"><a href="#cb25-17" tabindex="-1"></a><span class="co">#&gt; 1             2             1          1      normal</span></span>
+<span id="cb25-18"><a href="#cb25-18" tabindex="-1"></a><span class="co">#&gt; 2             2             3         -1      normal</span></span>
+<span id="cb25-19"><a href="#cb25-19" tabindex="-1"></a><span class="co">#&gt; 3             1             1          0      normal</span></span></code></pre></div>
+<p>All <code>pagerank()</code> parameters (damping, nofollow,
+indexability, etc.) can be passed through
+<code>simulate_changes()</code> via <code>...</code>.</p>
+</div>
+</div>
+<div id="convergence-controls-and-damping-stability" class="section level2">
+<h2>Convergence Controls and Damping Stability</h2>
+<div id="pagerank-convergence-controls" class="section level3">
+<h3>pagerank() convergence controls</h3>
+<p><code>pagerank()</code> delegates to igraph’s PageRank
+implementation. Two solvers are available via the <code>algo</code>
+argument:</p>
+<ul>
+<li><code>&quot;prpack&quot;</code> (default) — exact solver; ignores
+<code>eps</code> and <code>niter</code>.</li>
+<li><code>&quot;arpack&quot;</code> — iterative Arnoldi solver; required whenever
+you supply <code>eps</code> or <code>niter</code>. Passing either
+argument automatically switches the solver.</li>
+</ul>
+<p>Key arguments:</p>
+<table>
+<thead>
+<tr class="header">
+<th>Argument</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>algo</code></td>
+<td><code>&quot;prpack&quot;</code> (default) or <code>&quot;arpack&quot;</code></td>
+</tr>
+<tr class="even">
+<td><code>eps</code></td>
+<td>L1 convergence tolerance (maps to ARPACK
+<code>options$tol</code>)</td>
+</tr>
+<tr class="odd">
+<td><code>niter</code></td>
+<td>Max iterations (maps to ARPACK <code>options$maxiter</code>)</td>
+</tr>
+</tbody>
+</table>
+<p>Every result carries a <code>&quot;convergence&quot;</code> attribute — a
+<code>pagerank_convergence</code> object — that records the solver used,
+iteration count, and final L1 residual. Inspect it with
+<code>attr(result, &quot;convergence&quot;)</code> or just <code>print()</code>
+the result.</p>
+<p>Rule of thumb for iteration budget:
+<code>ceiling(log10(eps) / log10(damping))</code> iterations are needed
+to reach tolerance <code>eps</code> at damping factor
+<code>damping</code>.</p>
+</div>
+<div id="damping_sensitivity-and-pagerank_stability" class="section level3">
+<h3>damping_sensitivity() and pagerank_stability()</h3>
+<p><code>damping_sensitivity()</code> sweeps a vector of damping factors
+and returns one PageRank result per alpha:</p>
+<div class="sourceCode" id="cb26"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb26-1"><a href="#cb26-1" tabindex="-1"></a><span class="fu">damping_sensitivity</span>(edge_list_df, <span class="at">alphas =</span> <span class="fu">c</span>(<span class="fl">0.75</span>, <span class="fl">0.80</span>, <span class="fl">0.85</span>, <span class="fl">0.90</span>, <span class="fl">0.95</span>), ...)</span></code></pre></div>
+<p><code>pagerank_stability()</code> wraps the sweep into a
+ready-to-read stability report:</p>
+<div class="sourceCode" id="cb27"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb27-1"><a href="#cb27-1" tabindex="-1"></a><span class="fu">pagerank_stability</span>(</span>
+<span id="cb27-2"><a href="#cb27-2" tabindex="-1"></a>  edge_list_df,</span>
+<span id="cb27-3"><a href="#cb27-3" tabindex="-1"></a>  <span class="at">alphas     =</span> <span class="fu">c</span>(<span class="fl">0.75</span>, <span class="fl">0.80</span>, <span class="fl">0.85</span>, <span class="fl">0.90</span>, <span class="fl">0.95</span>),</span>
+<span id="cb27-4"><a href="#cb27-4" tabindex="-1"></a>  <span class="at">reference  =</span> <span class="fl">0.85</span>,</span>
+<span id="cb27-5"><a href="#cb27-5" tabindex="-1"></a>  <span class="at">top_k      =</span> <span class="dv">10</span>,</span>
+<span id="cb27-6"><a href="#cb27-6" tabindex="-1"></a>  ...</span>
+<span id="cb27-7"><a href="#cb27-7" tabindex="-1"></a>)</span></code></pre></div>
+<p>It returns a data frame with one row per alpha and two comparison
+columns relative to the reference run:</p>
+<ul>
+<li><code>spearman_rho</code> — rank-order correlation across all
+URLs.</li>
+<li><code>top_k_overlap</code> — fraction of the top-<code>k</code> URLs
+shared with the reference.</li>
+</ul>
+<p>The raw per-(url, alpha) scores are available via
+<code>attr(stab, &quot;sensitivity&quot;)</code>.</p>
+</div>
+<div id="worked-example" class="section level3">
+<h3>Worked example</h3>
+<div class="sourceCode" id="cb28"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb28-1"><a href="#cb28-1" tabindex="-1"></a>toy_edges <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(</span>
+<span id="cb28-2"><a href="#cb28-2" tabindex="-1"></a>  <span class="at">from =</span> <span class="fu">c</span>(<span class="st">&quot;A&quot;</span>, <span class="st">&quot;A&quot;</span>, <span class="st">&quot;B&quot;</span>, <span class="st">&quot;C&quot;</span>, <span class="st">&quot;C&quot;</span>, <span class="st">&quot;D&quot;</span>, <span class="st">&quot;E&quot;</span>, <span class="st">&quot;F&quot;</span>),</span>
+<span id="cb28-3"><a href="#cb28-3" tabindex="-1"></a>  <span class="at">to   =</span> <span class="fu">c</span>(<span class="st">&quot;B&quot;</span>, <span class="st">&quot;C&quot;</span>, <span class="st">&quot;D&quot;</span>, <span class="st">&quot;D&quot;</span>, <span class="st">&quot;E&quot;</span>, <span class="st">&quot;F&quot;</span>, <span class="st">&quot;A&quot;</span>, <span class="st">&quot;A&quot;</span>)</span>
+<span id="cb28-4"><a href="#cb28-4" tabindex="-1"></a>)</span>
+<span id="cb28-5"><a href="#cb28-5" tabindex="-1"></a></span>
+<span id="cb28-6"><a href="#cb28-6" tabindex="-1"></a><span class="co"># Stability report: how sensitive are ranks to damping?</span></span>
+<span id="cb28-7"><a href="#cb28-7" tabindex="-1"></a>stab <span class="ot">&lt;-</span> <span class="fu">pagerank_stability</span>(</span>
+<span id="cb28-8"><a href="#cb28-8" tabindex="-1"></a>  toy_edges,</span>
+<span id="cb28-9"><a href="#cb28-9" tabindex="-1"></a>  <span class="at">alphas            =</span> <span class="fu">c</span>(<span class="fl">0.75</span>, <span class="fl">0.80</span>, <span class="fl">0.85</span>, <span class="fl">0.90</span>, <span class="fl">0.95</span>),</span>
+<span id="cb28-10"><a href="#cb28-10" tabindex="-1"></a>  <span class="at">reference         =</span> <span class="fl">0.85</span>,</span>
+<span id="cb28-11"><a href="#cb28-11" tabindex="-1"></a>  <span class="at">top_k             =</span> <span class="dv">4</span>,</span>
+<span id="cb28-12"><a href="#cb28-12" tabindex="-1"></a>  <span class="at">clean_edge_urls   =</span> <span class="cn">FALSE</span></span>
+<span id="cb28-13"><a href="#cb28-13" tabindex="-1"></a>)</span>
+<span id="cb28-14"><a href="#cb28-14" tabindex="-1"></a><span class="fu">print</span>(stab)</span>
+<span id="cb28-15"><a href="#cb28-15" tabindex="-1"></a><span class="co">#&gt;   alpha spearman_rho mean_abs_delta top_k_overlap nodes_gained nodes_lost</span></span>
+<span id="cb28-16"><a href="#cb28-16" tabindex="-1"></a><span class="co">#&gt; 1  0.75            1    0.004359987             1            0          0</span></span>
+<span id="cb28-17"><a href="#cb28-17" tabindex="-1"></a><span class="co">#&gt; 2  0.80            1    0.002156580             1            0          0</span></span>
+<span id="cb28-18"><a href="#cb28-18" tabindex="-1"></a><span class="co">#&gt; 3  0.85            1    0.000000000             1            0          0</span></span>
+<span id="cb28-19"><a href="#cb28-19" tabindex="-1"></a><span class="co">#&gt; 4  0.90            1    0.002115985             1            0          0</span></span>
+<span id="cb28-20"><a href="#cb28-20" tabindex="-1"></a><span class="co">#&gt; 5  0.95            1    0.004196891             1            0          0</span></span>
+<span id="cb28-21"><a href="#cb28-21" tabindex="-1"></a><span class="co">#&gt;     algo iters iters_estimate     residual   tol converged n_nodes</span></span>
+<span id="cb28-22"><a href="#cb28-22" tabindex="-1"></a><span class="co">#&gt; 1 prpack    NA             25 8.326673e-17 0.001      TRUE       6</span></span>
+<span id="cb28-23"><a href="#cb28-23" tabindex="-1"></a><span class="co">#&gt; 2 prpack    NA             31 5.551115e-17 0.001      TRUE       6</span></span>
+<span id="cb28-24"><a href="#cb28-24" tabindex="-1"></a><span class="co">#&gt; 3 prpack    NA             43 5.551115e-17 0.001      TRUE       6</span></span>
+<span id="cb28-25"><a href="#cb28-25" tabindex="-1"></a><span class="co">#&gt; 4 prpack    NA             66 9.714451e-17 0.001      TRUE       6</span></span>
+<span id="cb28-26"><a href="#cb28-26" tabindex="-1"></a><span class="co">#&gt; 5 prpack    NA            135 1.249001e-16 0.001      TRUE       6</span></span>
+<span id="cb28-27"><a href="#cb28-27" tabindex="-1"></a></span>
+<span id="cb28-28"><a href="#cb28-28" tabindex="-1"></a><span class="co"># Drill into raw per-(url, alpha) scores</span></span>
+<span id="cb28-29"><a href="#cb28-29" tabindex="-1"></a><span class="fu">head</span>(<span class="fu">attr</span>(stab, <span class="st">&quot;sensitivity&quot;</span>))</span>
+<span id="cb28-30"><a href="#cb28-30" tabindex="-1"></a><span class="co">#&gt;   url alpha      score iters iters_estimate     residual converged</span></span>
+<span id="cb28-31"><a href="#cb28-31" tabindex="-1"></a><span class="co">#&gt; 1   A  0.75 0.25210500    NA             25 8.326673e-17      TRUE</span></span>
+<span id="cb28-32"><a href="#cb28-32" tabindex="-1"></a><span class="co">#&gt; 2   D  0.75 0.19489846    NA             25 8.326673e-17      TRUE</span></span>
+<span id="cb28-33"><a href="#cb28-33" tabindex="-1"></a><span class="co">#&gt; 3   F  0.75 0.18784052    NA             25 8.326673e-17      TRUE</span></span>
+<span id="cb28-34"><a href="#cb28-34" tabindex="-1"></a><span class="co">#&gt; 4   B  0.75 0.13620604    NA             25 8.326673e-17      TRUE</span></span>
+<span id="cb28-35"><a href="#cb28-35" tabindex="-1"></a><span class="co">#&gt; 5   C  0.75 0.13620604    NA             25 8.326673e-17      TRUE</span></span>
+<span id="cb28-36"><a href="#cb28-36" tabindex="-1"></a><span class="co">#&gt; 6   E  0.75 0.09274393    NA             25 8.326673e-17      TRUE</span></span></code></pre></div>
+<p>At <code>alpha</code> values close to the reference the
+<code>spearman_rho</code> and <code>top_k_overlap</code> columns will be
+near 1; larger deviations flag URLs whose importance is
+damping-sensitive.</p>
+</div>
+</div>
+<div id="topic-sensitive-pagerank" class="section level2">
+<h2>Topic-Sensitive PageRank</h2>
+<p>Standard PageRank treats every page as an equally likely teleport
+target. Topic-Sensitive PageRank (Haveliwala 2002, adapted here to a
+site graph) replaces that uniform prior with a cluster-biased one: the
+random surfer teleports only to pages that belong to a predefined topic
+cluster. The result is a family of per-topic authority scores — each
+score answers “how important is this page <em>for visitors who care
+about topic X</em>?” — plus a blended aggregate that weight-averages the
+individual topic vectors.</p>
+<p><code>topic_sensitive_pagerank()</code> is pure orchestration: it
+runs <code>pagerank()</code> once per topic with the appropriate seeded
+prior, then blends the results. Topic membership is supplied by the
+caller; it is never inferred from content.</p>
+<p><strong>Signature</strong></p>
+<div class="sourceCode" id="cb29"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb29-1"><a href="#cb29-1" tabindex="-1"></a><span class="fu">topic_sensitive_pagerank</span>(</span>
+<span id="cb29-2"><a href="#cb29-2" tabindex="-1"></a>  edge_list_df,</span>
+<span id="cb29-3"><a href="#cb29-3" tabindex="-1"></a>  topics,</span>
+<span id="cb29-4"><a href="#cb29-4" tabindex="-1"></a>  <span class="at">topic_weights      =</span> <span class="cn">NULL</span>,</span>
+<span id="cb29-5"><a href="#cb29-5" tabindex="-1"></a>  <span class="at">topic_url_col      =</span> <span class="st">&quot;url&quot;</span>,</span>
+<span id="cb29-6"><a href="#cb29-6" tabindex="-1"></a>  <span class="at">topic_weight_col   =</span> <span class="st">&quot;weight&quot;</span>,</span>
+<span id="cb29-7"><a href="#cb29-7" tabindex="-1"></a>  ...</span>
+<span id="cb29-8"><a href="#cb29-8" tabindex="-1"></a>)</span></code></pre></div>
+<p><code>topics</code> is a <strong>named list</strong>. Each element is
+either a character vector of seed URLs (equal-weight prior) or a data
+frame with URL and weight columns (custom prior).</p>
+<div id="worked-example-1" class="section level3">
+<h3>Worked example</h3>
+<div class="sourceCode" id="cb30"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb30-1"><a href="#cb30-1" tabindex="-1"></a><span class="fu">library</span>(pagerankr)</span>
+<span id="cb30-2"><a href="#cb30-2" tabindex="-1"></a></span>
+<span id="cb30-3"><a href="#cb30-3" tabindex="-1"></a><span class="co"># Small synthetic site: 7 pages, two rough topic clusters</span></span>
+<span id="cb30-4"><a href="#cb30-4" tabindex="-1"></a>edges <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(</span>
+<span id="cb30-5"><a href="#cb30-5" tabindex="-1"></a>  <span class="at">from =</span> <span class="fu">c</span>(<span class="st">&quot;Home&quot;</span>, <span class="st">&quot;Home&quot;</span>, <span class="st">&quot;Blog&quot;</span>, <span class="st">&quot;Blog&quot;</span>, <span class="st">&quot;Shop&quot;</span>, <span class="st">&quot;Shop&quot;</span>, <span class="st">&quot;Docs&quot;</span>),</span>
+<span id="cb30-6"><a href="#cb30-6" tabindex="-1"></a>  <span class="at">to   =</span> <span class="fu">c</span>(<span class="st">&quot;Blog&quot;</span>, <span class="st">&quot;Shop&quot;</span>, <span class="st">&quot;Post1&quot;</span>, <span class="st">&quot;Post2&quot;</span>, <span class="st">&quot;Item1&quot;</span>, <span class="st">&quot;Item2&quot;</span>, <span class="st">&quot;Guide1&quot;</span>)</span>
+<span id="cb30-7"><a href="#cb30-7" tabindex="-1"></a>)</span>
+<span id="cb30-8"><a href="#cb30-8" tabindex="-1"></a></span>
+<span id="cb30-9"><a href="#cb30-9" tabindex="-1"></a><span class="co"># Define two topics as named lists of seed URL vectors</span></span>
+<span id="cb30-10"><a href="#cb30-10" tabindex="-1"></a>topics <span class="ot">&lt;-</span> <span class="fu">list</span>(</span>
+<span id="cb30-11"><a href="#cb30-11" tabindex="-1"></a>  <span class="at">content =</span> <span class="fu">c</span>(<span class="st">&quot;Blog&quot;</span>, <span class="st">&quot;Post1&quot;</span>, <span class="st">&quot;Post2&quot;</span>),</span>
+<span id="cb30-12"><a href="#cb30-12" tabindex="-1"></a>  <span class="at">commerce =</span> <span class="fu">c</span>(<span class="st">&quot;Shop&quot;</span>, <span class="st">&quot;Item1&quot;</span>, <span class="st">&quot;Item2&quot;</span>)</span>
+<span id="cb30-13"><a href="#cb30-13" tabindex="-1"></a>)</span>
+<span id="cb30-14"><a href="#cb30-14" tabindex="-1"></a></span>
+<span id="cb30-15"><a href="#cb30-15" tabindex="-1"></a>tspr <span class="ot">&lt;-</span> <span class="fu">topic_sensitive_pagerank</span>(</span>
+<span id="cb30-16"><a href="#cb30-16" tabindex="-1"></a>  <span class="at">edge_list_df    =</span> edges,</span>
+<span id="cb30-17"><a href="#cb30-17" tabindex="-1"></a>  <span class="at">topics          =</span> topics,</span>
+<span id="cb30-18"><a href="#cb30-18" tabindex="-1"></a>  <span class="at">clean_edge_urls =</span> <span class="cn">FALSE</span></span>
+<span id="cb30-19"><a href="#cb30-19" tabindex="-1"></a>)</span>
+<span id="cb30-20"><a href="#cb30-20" tabindex="-1"></a></span>
+<span id="cb30-21"><a href="#cb30-21" tabindex="-1"></a><span class="fu">print</span>(tspr)</span>
+<span id="cb30-22"><a href="#cb30-22" tabindex="-1"></a><span class="co">#&gt;   node_name   content  commerce   blended</span></span>
+<span id="cb30-23"><a href="#cb30-23" tabindex="-1"></a><span class="co">#&gt; 1     Item1 0.0000000 0.3701299 0.1850649</span></span>
+<span id="cb30-24"><a href="#cb30-24" tabindex="-1"></a><span class="co">#&gt; 2     Item2 0.0000000 0.3701299 0.1850649</span></span>
+<span id="cb30-25"><a href="#cb30-25" tabindex="-1"></a><span class="co">#&gt; 3     Post1 0.3701299 0.0000000 0.1850649</span></span>
+<span id="cb30-26"><a href="#cb30-26" tabindex="-1"></a><span class="co">#&gt; 4     Post2 0.3701299 0.0000000 0.1850649</span></span>
+<span id="cb30-27"><a href="#cb30-27" tabindex="-1"></a><span class="co">#&gt; 5      Blog 0.2597403 0.0000000 0.1298701</span></span>
+<span id="cb30-28"><a href="#cb30-28" tabindex="-1"></a><span class="co">#&gt; 6      Shop 0.0000000 0.2597403 0.1298701</span></span>
+<span id="cb30-29"><a href="#cb30-29" tabindex="-1"></a><span class="co">#&gt; 7      Docs 0.0000000 0.0000000 0.0000000</span></span>
+<span id="cb30-30"><a href="#cb30-30" tabindex="-1"></a><span class="co">#&gt; 8    Guide1 0.0000000 0.0000000 0.0000000</span></span>
+<span id="cb30-31"><a href="#cb30-31" tabindex="-1"></a><span class="co">#&gt; 9      Home 0.0000000 0.0000000 0.0000000</span></span></code></pre></div>
+<p>The returned data frame has one row per node and three score columns:
+<code>content</code>, <code>commerce</code>, and
+<code>blended</code>.</p>
+<div class="sourceCode" id="cb31"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb31-1"><a href="#cb31-1" tabindex="-1"></a><span class="co"># Per-topic scores</span></span>
+<span id="cb31-2"><a href="#cb31-2" tabindex="-1"></a>tspr[, <span class="fu">c</span>(<span class="st">&quot;node_name&quot;</span>, <span class="st">&quot;content&quot;</span>, <span class="st">&quot;commerce&quot;</span>)]</span>
+<span id="cb31-3"><a href="#cb31-3" tabindex="-1"></a><span class="co">#&gt;   node_name   content  commerce</span></span>
+<span id="cb31-4"><a href="#cb31-4" tabindex="-1"></a><span class="co">#&gt; 1     Item1 0.0000000 0.3701299</span></span>
+<span id="cb31-5"><a href="#cb31-5" tabindex="-1"></a><span class="co">#&gt; 2     Item2 0.0000000 0.3701299</span></span>
+<span id="cb31-6"><a href="#cb31-6" tabindex="-1"></a><span class="co">#&gt; 3     Post1 0.3701299 0.0000000</span></span>
+<span id="cb31-7"><a href="#cb31-7" tabindex="-1"></a><span class="co">#&gt; 4     Post2 0.3701299 0.0000000</span></span>
+<span id="cb31-8"><a href="#cb31-8" tabindex="-1"></a><span class="co">#&gt; 5      Blog 0.2597403 0.0000000</span></span>
+<span id="cb31-9"><a href="#cb31-9" tabindex="-1"></a><span class="co">#&gt; 6      Shop 0.0000000 0.2597403</span></span>
+<span id="cb31-10"><a href="#cb31-10" tabindex="-1"></a><span class="co">#&gt; 7      Docs 0.0000000 0.0000000</span></span>
+<span id="cb31-11"><a href="#cb31-11" tabindex="-1"></a><span class="co">#&gt; 8    Guide1 0.0000000 0.0000000</span></span>
+<span id="cb31-12"><a href="#cb31-12" tabindex="-1"></a><span class="co">#&gt; 9      Home 0.0000000 0.0000000</span></span>
+<span id="cb31-13"><a href="#cb31-13" tabindex="-1"></a></span>
+<span id="cb31-14"><a href="#cb31-14" tabindex="-1"></a><span class="co"># Blended (equal topic weights by default)</span></span>
+<span id="cb31-15"><a href="#cb31-15" tabindex="-1"></a>tspr[, <span class="fu">c</span>(<span class="st">&quot;node_name&quot;</span>, <span class="st">&quot;blended&quot;</span>)]</span>
+<span id="cb31-16"><a href="#cb31-16" tabindex="-1"></a><span class="co">#&gt;   node_name   blended</span></span>
+<span id="cb31-17"><a href="#cb31-17" tabindex="-1"></a><span class="co">#&gt; 1     Item1 0.1850649</span></span>
+<span id="cb31-18"><a href="#cb31-18" tabindex="-1"></a><span class="co">#&gt; 2     Item2 0.1850649</span></span>
+<span id="cb31-19"><a href="#cb31-19" tabindex="-1"></a><span class="co">#&gt; 3     Post1 0.1850649</span></span>
+<span id="cb31-20"><a href="#cb31-20" tabindex="-1"></a><span class="co">#&gt; 4     Post2 0.1850649</span></span>
+<span id="cb31-21"><a href="#cb31-21" tabindex="-1"></a><span class="co">#&gt; 5      Blog 0.1298701</span></span>
+<span id="cb31-22"><a href="#cb31-22" tabindex="-1"></a><span class="co">#&gt; 6      Shop 0.1298701</span></span>
+<span id="cb31-23"><a href="#cb31-23" tabindex="-1"></a><span class="co">#&gt; 7      Docs 0.0000000</span></span>
+<span id="cb31-24"><a href="#cb31-24" tabindex="-1"></a><span class="co">#&gt; 8    Guide1 0.0000000</span></span>
+<span id="cb31-25"><a href="#cb31-25" tabindex="-1"></a><span class="co">#&gt; 9      Home 0.0000000</span></span></code></pre></div>
+</div>
+<div id="distinguishing-related-functions" class="section level3">
+<h3>Distinguishing related functions</h3>
+<p><strong><code>topic_feeder_pagerank()</code></strong> answers the
+complementary question: which pages <em>outside</em> a cluster send the
+most PageRank authority <em>into</em> it? It operates on the reverse
+graph and seeds the teleport prior on the cluster itself. Use it when
+you want to find upstream link-building opportunities. See
+<code>vignette(&quot;topic_feeder_pagerank&quot;)</code> for a full
+walkthrough.</p>
+<p><strong><code>trustrank()</code></strong> is the unipolar variant: a
+single “trusted” seed set replaces the topic list, and there is no
+blending step. See <code>vignette(&quot;trustrank&quot;)</code>.</p>
+</div>
+</div>
+<div id="ga4-behavioral-transitions" class="section level2">
+<h2>GA4 Behavioral Transitions</h2>
+<p>GA4 event data captures how real users move through your site. The
+three functions in this section let you convert those signals into
+PageRank inputs without requiring a BigQuery connection — a synthetic
+events data frame is sufficient for local development.</p>
+<div id="building-transition-counts-with-ga4_page_transitions" class="section level3">
+<h3>Building transition counts with
+<code>ga4_page_transitions()</code></h3>
+<p><code>ga4_page_transitions()</code> walks each user-session in
+chronological order and emits one row per consecutive page-view pair.
+The result is a <strong>transition signal</strong> (observed navigation
+behavior), not a link-click signal, so it reflects where users actually
+go rather than where crawlable anchor tags point.</p>
+<div class="sourceCode" id="cb32"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb32-1"><a href="#cb32-1" tabindex="-1"></a><span class="fu">library</span>(pagerankr)</span>
+<span id="cb32-2"><a href="#cb32-2" tabindex="-1"></a></span>
+<span id="cb32-3"><a href="#cb32-3" tabindex="-1"></a><span class="co"># Minimal synthetic GA4 events data frame (no BigQuery required)</span></span>
+<span id="cb32-4"><a href="#cb32-4" tabindex="-1"></a>events <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(</span>
+<span id="cb32-5"><a href="#cb32-5" tabindex="-1"></a>  <span class="at">user_pseudo_id  =</span> <span class="fu">c</span>(<span class="st">&quot;u1&quot;</span>, <span class="st">&quot;u1&quot;</span>, <span class="st">&quot;u1&quot;</span>, <span class="st">&quot;u2&quot;</span>, <span class="st">&quot;u2&quot;</span>),</span>
+<span id="cb32-6"><a href="#cb32-6" tabindex="-1"></a>  <span class="at">ga_session_id   =</span> <span class="fu">c</span>(<span class="dv">1</span><span class="dt">L</span>,   <span class="dv">1</span><span class="dt">L</span>,   <span class="dv">1</span><span class="dt">L</span>,   <span class="dv">2</span><span class="dt">L</span>,   <span class="dv">2</span><span class="dt">L</span>),</span>
+<span id="cb32-7"><a href="#cb32-7" tabindex="-1"></a>  <span class="at">page_location   =</span> <span class="fu">c</span>(<span class="st">&quot;/home&quot;</span>, <span class="st">&quot;/blog&quot;</span>, <span class="st">&quot;/contact&quot;</span>, <span class="st">&quot;/home&quot;</span>, <span class="st">&quot;/pricing&quot;</span>),</span>
+<span id="cb32-8"><a href="#cb32-8" tabindex="-1"></a>  <span class="at">event_timestamp =</span> <span class="fu">c</span>(<span class="dv">1000</span><span class="dt">L</span>,  <span class="dv">2000</span><span class="dt">L</span>,  <span class="dv">3000</span><span class="dt">L</span>,  <span class="dv">1000</span><span class="dt">L</span>,  <span class="dv">2000</span><span class="dt">L</span>)</span>
+<span id="cb32-9"><a href="#cb32-9" tabindex="-1"></a>)</span>
+<span id="cb32-10"><a href="#cb32-10" tabindex="-1"></a></span>
+<span id="cb32-11"><a href="#cb32-11" tabindex="-1"></a>transitions <span class="ot">&lt;-</span> <span class="fu">ga4_page_transitions</span>(</span>
+<span id="cb32-12"><a href="#cb32-12" tabindex="-1"></a>  events,</span>
+<span id="cb32-13"><a href="#cb32-13" tabindex="-1"></a>  <span class="at">user_id_col   =</span> <span class="st">&quot;user_pseudo_id&quot;</span>,</span>
+<span id="cb32-14"><a href="#cb32-14" tabindex="-1"></a>  <span class="at">session_id_col =</span> <span class="st">&quot;ga_session_id&quot;</span>,</span>
+<span id="cb32-15"><a href="#cb32-15" tabindex="-1"></a>  <span class="at">page_col       =</span> <span class="st">&quot;page_location&quot;</span>,</span>
+<span id="cb32-16"><a href="#cb32-16" tabindex="-1"></a>  <span class="at">timestamp_col  =</span> <span class="st">&quot;event_timestamp&quot;</span></span>
+<span id="cb32-17"><a href="#cb32-17" tabindex="-1"></a>)</span>
+<span id="cb32-18"><a href="#cb32-18" tabindex="-1"></a><span class="fu">print</span>(transitions)</span>
+<span id="cb32-19"><a href="#cb32-19" tabindex="-1"></a><span class="co">#&gt;    from       to n</span></span>
+<span id="cb32-20"><a href="#cb32-20" tabindex="-1"></a><span class="co">#&gt; 1 /blog /contact 1</span></span>
+<span id="cb32-21"><a href="#cb32-21" tabindex="-1"></a><span class="co">#&gt; 2 /home    /blog 1</span></span>
+<span id="cb32-22"><a href="#cb32-22" tabindex="-1"></a><span class="co">#&gt; 3 /home /pricing 1</span></span>
+<span id="cb32-23"><a href="#cb32-23" tabindex="-1"></a><span class="co"># Returns a data frame with columns: from, to, n</span></span></code></pre></div>
+</div>
+<div id="smoothing-sparse-transitions-with-smooth_transitions" class="section level3">
+<h3>Smoothing sparse transitions with
+<code>smooth_transitions()</code></h3>
+<p>Observed transition counts are often sparse — many source pages have
+very few sessions, making raw empirical shares unreliable.
+<code>smooth_transitions()</code> applies per-source Dirichlet smoothing
+toward a structural (crawl-graph) prior:</p>
+<pre><code>lambda_i = n_i / (n_i + k)</code></pre>
+<p>where <code>n_i</code> is the total outgoing transition count from
+source <code>i</code> and <code>k</code> controls how quickly
+low-traffic sources lean on the prior. Sources with fewer than
+<code>min_support</code> total outgoing transitions receive full prior
+weight (<code>lambda_i = 0</code>).</p>
+<div class="sourceCode" id="cb34"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb34-1"><a href="#cb34-1" tabindex="-1"></a><span class="co"># Build a minimal structural prior from the same pages</span></span>
+<span id="cb34-2"><a href="#cb34-2" tabindex="-1"></a>structural <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(</span>
+<span id="cb34-3"><a href="#cb34-3" tabindex="-1"></a>  <span class="at">from =</span> <span class="fu">c</span>(<span class="st">&quot;/home&quot;</span>,    <span class="st">&quot;/home&quot;</span>,    <span class="st">&quot;/blog&quot;</span>),</span>
+<span id="cb34-4"><a href="#cb34-4" tabindex="-1"></a>  <span class="at">to   =</span> <span class="fu">c</span>(<span class="st">&quot;/blog&quot;</span>,   <span class="st">&quot;/pricing&quot;</span>, <span class="st">&quot;/contact&quot;</span>),</span>
+<span id="cb34-5"><a href="#cb34-5" tabindex="-1"></a>  <span class="at">n    =</span> <span class="fu">c</span>(<span class="dv">50</span><span class="dt">L</span>,        <span class="dv">30</span><span class="dt">L</span>,        <span class="dv">40</span><span class="dt">L</span>)</span>
+<span id="cb34-6"><a href="#cb34-6" tabindex="-1"></a>)</span>
+<span id="cb34-7"><a href="#cb34-7" tabindex="-1"></a></span>
+<span id="cb34-8"><a href="#cb34-8" tabindex="-1"></a>smoothed <span class="ot">&lt;-</span> <span class="fu">smooth_transitions</span>(</span>
+<span id="cb34-9"><a href="#cb34-9" tabindex="-1"></a>  <span class="at">empirical_df   =</span> transitions,</span>
+<span id="cb34-10"><a href="#cb34-10" tabindex="-1"></a>  <span class="at">structural_df  =</span> structural,</span>
+<span id="cb34-11"><a href="#cb34-11" tabindex="-1"></a>  <span class="at">k              =</span> <span class="dv">10</span>,</span>
+<span id="cb34-12"><a href="#cb34-12" tabindex="-1"></a>  <span class="at">min_support    =</span> <span class="dv">5</span>,</span>
+<span id="cb34-13"><a href="#cb34-13" tabindex="-1"></a>  <span class="at">count_col      =</span> <span class="st">&quot;n&quot;</span>,</span>
+<span id="cb34-14"><a href="#cb34-14" tabindex="-1"></a>  <span class="at">from_col       =</span> <span class="st">&quot;from&quot;</span>,</span>
+<span id="cb34-15"><a href="#cb34-15" tabindex="-1"></a>  <span class="at">to_col         =</span> <span class="st">&quot;to&quot;</span>,</span>
+<span id="cb34-16"><a href="#cb34-16" tabindex="-1"></a>  <span class="at">prob_col       =</span> <span class="st">&quot;prob&quot;</span></span>
+<span id="cb34-17"><a href="#cb34-17" tabindex="-1"></a>)</span>
+<span id="cb34-18"><a href="#cb34-18" tabindex="-1"></a><span class="fu">print</span>(smoothed)</span>
+<span id="cb34-19"><a href="#cb34-19" tabindex="-1"></a><span class="co">#&gt;    from       to prob empirical_count empirical_share structural_prior support</span></span>
+<span id="cb34-20"><a href="#cb34-20" tabindex="-1"></a><span class="co">#&gt; 1 /blog /contact  1.0               1             1.0              1.0       1</span></span>
+<span id="cb34-21"><a href="#cb34-21" tabindex="-1"></a><span class="co">#&gt; 2 /home    /blog  0.5               1             0.5              0.5       2</span></span>
+<span id="cb34-22"><a href="#cb34-22" tabindex="-1"></a><span class="co">#&gt; 3 /home /pricing  0.5               1             0.5              0.5       2</span></span>
+<span id="cb34-23"><a href="#cb34-23" tabindex="-1"></a><span class="co">#&gt;   lambda origin</span></span>
+<span id="cb34-24"><a href="#cb34-24" tabindex="-1"></a><span class="co">#&gt; 1      0   both</span></span>
+<span id="cb34-25"><a href="#cb34-25" tabindex="-1"></a><span class="co">#&gt; 2      0   both</span></span>
+<span id="cb34-26"><a href="#cb34-26" tabindex="-1"></a><span class="co">#&gt; 3      0   both</span></span>
+<span id="cb34-27"><a href="#cb34-27" tabindex="-1"></a><span class="co"># empirical_df augmented with a `prob` column: smoothed per-source</span></span>
+<span id="cb34-28"><a href="#cb34-28" tabindex="-1"></a><span class="co"># transition probabilities (each source sums to 1)</span></span></code></pre></div>
+</div>
+<div id="converting-entrances-to-a-teleport-vector-with-ga4_entrance_teleport" class="section level3">
+<h3>Converting entrances to a teleport vector with
+<code>ga4_entrance_teleport()</code></h3>
+<p><code>ga4_entrance_teleport()</code> turns landing-page entrance
+counts into a <code>prior_df</code> suitable for
+<code>pagerank(prior_df = ...)</code>. This provides a <strong>proxy for
+external authority</strong>: pages users enter from search or direct
+traffic receive a higher reset probability during the random-surfer
+teleport step.</p>
+<blockquote>
+<p><strong>Note:</strong> entrance counts are not equivalent to backlink
+authority — they reflect observed user entry points, not link equity
+from external domains.</p>
+</blockquote>
+<div class="sourceCode" id="cb35"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb35-1"><a href="#cb35-1" tabindex="-1"></a>entrances <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(</span>
+<span id="cb35-2"><a href="#cb35-2" tabindex="-1"></a>  <span class="at">page_location =</span> <span class="fu">c</span>(<span class="st">&quot;/home&quot;</span>, <span class="st">&quot;/blog&quot;</span>, <span class="st">&quot;/pricing&quot;</span>, <span class="st">&quot;/contact&quot;</span>),</span>
+<span id="cb35-3"><a href="#cb35-3" tabindex="-1"></a>  <span class="at">entrances     =</span> <span class="fu">c</span>(<span class="dv">120</span><span class="dt">L</span>,    <span class="dv">80</span><span class="dt">L</span>,     <span class="dv">40</span><span class="dt">L</span>,         <span class="dv">10</span><span class="dt">L</span>)</span>
+<span id="cb35-4"><a href="#cb35-4" tabindex="-1"></a>)</span>
+<span id="cb35-5"><a href="#cb35-5" tabindex="-1"></a></span>
+<span id="cb35-6"><a href="#cb35-6" tabindex="-1"></a>prior <span class="ot">&lt;-</span> <span class="fu">ga4_entrance_teleport</span>(</span>
+<span id="cb35-7"><a href="#cb35-7" tabindex="-1"></a>  <span class="at">entrances_df   =</span> entrances,</span>
+<span id="cb35-8"><a href="#cb35-8" tabindex="-1"></a>  <span class="at">url_col        =</span> <span class="st">&quot;page_location&quot;</span>,</span>
+<span id="cb35-9"><a href="#cb35-9" tabindex="-1"></a>  <span class="at">entrances_col  =</span> <span class="st">&quot;entrances&quot;</span>,</span>
+<span id="cb35-10"><a href="#cb35-10" tabindex="-1"></a>  <span class="at">vertex_names   =</span> <span class="cn">NULL</span></span>
+<span id="cb35-11"><a href="#cb35-11" tabindex="-1"></a>)</span>
+<span id="cb35-12"><a href="#cb35-12" tabindex="-1"></a><span class="fu">print</span>(prior)</span>
+<span id="cb35-13"><a href="#cb35-13" tabindex="-1"></a><span class="co">#&gt;        url weight</span></span>
+<span id="cb35-14"><a href="#cb35-14" tabindex="-1"></a><span class="co">#&gt; 1    /blog     80</span></span>
+<span id="cb35-15"><a href="#cb35-15" tabindex="-1"></a><span class="co">#&gt; 2 /contact     10</span></span>
+<span id="cb35-16"><a href="#cb35-16" tabindex="-1"></a><span class="co">#&gt; 3    /home    120</span></span>
+<span id="cb35-17"><a href="#cb35-17" tabindex="-1"></a><span class="co">#&gt; 4 /pricing     40</span></span>
+<span id="cb35-18"><a href="#cb35-18" tabindex="-1"></a><span class="co"># Returns: url + weight data frame, ready for pagerank(prior_df = .)</span></span></code></pre></div>
+</div>
+<div id="end-to-end-example" class="section level3">
+<h3>End-to-end example</h3>
+<p>Combine all three steps: raw events → transition counts → smoothing →
+PageRank.</p>
+<div class="sourceCode" id="cb36"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb36-1"><a href="#cb36-1" tabindex="-1"></a><span class="co"># 1. Extract transitions from synthetic events</span></span>
+<span id="cb36-2"><a href="#cb36-2" tabindex="-1"></a>trans <span class="ot">&lt;-</span> <span class="fu">ga4_page_transitions</span>(</span>
+<span id="cb36-3"><a href="#cb36-3" tabindex="-1"></a>  events,</span>
+<span id="cb36-4"><a href="#cb36-4" tabindex="-1"></a>  <span class="at">user_id_col    =</span> <span class="st">&quot;user_pseudo_id&quot;</span>,</span>
+<span id="cb36-5"><a href="#cb36-5" tabindex="-1"></a>  <span class="at">session_id_col =</span> <span class="st">&quot;ga_session_id&quot;</span>,</span>
+<span id="cb36-6"><a href="#cb36-6" tabindex="-1"></a>  <span class="at">page_col       =</span> <span class="st">&quot;page_location&quot;</span>,</span>
+<span id="cb36-7"><a href="#cb36-7" tabindex="-1"></a>  <span class="at">timestamp_col  =</span> <span class="st">&quot;event_timestamp&quot;</span></span>
+<span id="cb36-8"><a href="#cb36-8" tabindex="-1"></a>)</span>
+<span id="cb36-9"><a href="#cb36-9" tabindex="-1"></a></span>
+<span id="cb36-10"><a href="#cb36-10" tabindex="-1"></a><span class="co"># 2. Smooth against the structural prior</span></span>
+<span id="cb36-11"><a href="#cb36-11" tabindex="-1"></a>sm <span class="ot">&lt;-</span> <span class="fu">smooth_transitions</span>(</span>
+<span id="cb36-12"><a href="#cb36-12" tabindex="-1"></a>  <span class="at">empirical_df  =</span> trans,</span>
+<span id="cb36-13"><a href="#cb36-13" tabindex="-1"></a>  <span class="at">structural_df =</span> structural,</span>
+<span id="cb36-14"><a href="#cb36-14" tabindex="-1"></a>  <span class="at">k             =</span> <span class="dv">10</span>,</span>
+<span id="cb36-15"><a href="#cb36-15" tabindex="-1"></a>  <span class="at">min_support   =</span> <span class="dv">2</span>,</span>
+<span id="cb36-16"><a href="#cb36-16" tabindex="-1"></a>  <span class="at">prob_col      =</span> <span class="st">&quot;prob&quot;</span></span>
+<span id="cb36-17"><a href="#cb36-17" tabindex="-1"></a>)</span>
+<span id="cb36-18"><a href="#cb36-18" tabindex="-1"></a></span>
+<span id="cb36-19"><a href="#cb36-19" tabindex="-1"></a><span class="co"># 3. Run PageRank using smoothed probabilities as edge weights</span></span>
+<span id="cb36-20"><a href="#cb36-20" tabindex="-1"></a>pr <span class="ot">&lt;-</span> <span class="fu">pagerank</span>(</span>
+<span id="cb36-21"><a href="#cb36-21" tabindex="-1"></a>  sm,</span>
+<span id="cb36-22"><a href="#cb36-22" tabindex="-1"></a>  <span class="at">edge_from_col  =</span> <span class="st">&quot;from&quot;</span>,</span>
+<span id="cb36-23"><a href="#cb36-23" tabindex="-1"></a>  <span class="at">edge_to_col    =</span> <span class="st">&quot;to&quot;</span>,</span>
+<span id="cb36-24"><a href="#cb36-24" tabindex="-1"></a>  <span class="at">weight_col     =</span> <span class="st">&quot;prob&quot;</span>,</span>
+<span id="cb36-25"><a href="#cb36-25" tabindex="-1"></a>  <span class="at">clean_edge_urls =</span> <span class="cn">FALSE</span></span>
+<span id="cb36-26"><a href="#cb36-26" tabindex="-1"></a>)</span>
+<span id="cb36-27"><a href="#cb36-27" tabindex="-1"></a><span class="fu">print</span>(pr)</span>
+<span id="cb36-28"><a href="#cb36-28" tabindex="-1"></a><span class="co">#&gt;   node_name  pagerank</span></span>
+<span id="cb36-29"><a href="#cb36-29" tabindex="-1"></a><span class="co">#&gt; 1     /blog 0.2351000</span></span>
+<span id="cb36-30"><a href="#cb36-30" tabindex="-1"></a><span class="co">#&gt; 2  /contact 0.3648175</span></span>
+<span id="cb36-31"><a href="#cb36-31" tabindex="-1"></a><span class="co">#&gt; 3     /home 0.1649825</span></span>
+<span id="cb36-32"><a href="#cb36-32" tabindex="-1"></a><span class="co">#&gt; 4  /pricing 0.2351000</span></span></code></pre></div>
+<p><code>clean_edge_urls = FALSE</code> is used throughout because the
+synthetic URLs are already normalized; set it to <code>TRUE</code> when
+feeding real GA4 <code>page_location</code> values that may contain
+query strings or fragments.</p>
+</div>
+</div>
+<div id="function-reference" class="section level2">
+<h2>Function Reference</h2>
+<table>
+<colgroup>
+<col width="50%" />
+<col width="50%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Function</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>pagerank()</code></td>
+<td>End-to-end: clean, resolve, compute</td>
+</tr>
+<tr class="even">
+<td><code>hits()</code></td>
+<td>End-to-end HITS hub + authority on the same graph</td>
+</tr>
+<tr class="odd">
+<td><code>compute_hits()</code></td>
+<td>Low-level igraph HITS wrapper</td>
+</tr>
+<tr class="even">
+<td><code>salsa()</code></td>
+<td>End-to-end SALSA hub + authority on the same graph</td>
+</tr>
+<tr class="odd">
+<td><code>compute_salsa()</code></td>
+<td>Low-level SALSA computational core</td>
+</tr>
+<tr class="even">
+<td><code>resolve_links()</code></td>
+<td>Resolve redirects + deduplicate (no PR)</td>
+</tr>
+<tr class="odd">
+<td><code>simulate_changes()</code></td>
+<td>What-if: compare baseline vs. proposed</td>
+</tr>
+<tr class="even">
+<td><code>compare_pagerank()</code></td>
+<td>Diff two PR results with rank shifts</td>
+</tr>
+<tr class="odd">
+<td><code>pagerank_grid()</code></td>
+<td>Run PR across parameter combinations</td>
+</tr>
+<tr class="even">
+<td><code>auto_grid()</code></td>
+<td>Generate parameter grid</td>
+</tr>
+<tr class="odd">
+<td><code>analyze_pagerank_grid()</code></td>
+<td>Distribution metrics across a grid</td>
+</tr>
+<tr class="even">
+<td><code>filter_links_by_domain()</code></td>
+<td>Scope edges by domain</td>
+</tr>
+<tr class="odd">
+<td><code>resolve_redirects()</code></td>
+<td>Apply redirects to an edge list</td>
+</tr>
+<tr class="even">
+<td><code>clean_url_columns()</code></td>
+<td>Canonicalize URLs</td>
+</tr>
+<tr class="odd">
+<td><code>get_unique_edges()</code></td>
+<td>Deduplicate, handle self-loops</td>
+</tr>
+<tr class="even">
+<td><code>drop_isolates()</code></td>
+<td>Include/exclude disconnected nodes</td>
+</tr>
+<tr class="odd">
+<td><code>compute_pagerank()</code></td>
+<td>Low-level igraph PR wrapper</td>
+</tr>
+<tr class="even">
+<td><code>pr_gini()</code></td>
+<td>Gini coefficient of PR distribution</td>
+</tr>
+<tr class="odd">
+<td><code>pr_entropy()</code></td>
+<td>Entropy of PR distribution</td>
+</tr>
+<tr class="even">
+<td><code>pr_top_k_share()</code></td>
+<td>Top-k concentration of PR</td>
+</tr>
+<tr class="odd">
+<td><code>damping_sensitivity()</code></td>
+<td>Sweep PageRank across a range of damping factors</td>
+</tr>
+<tr class="even">
+<td><code>pagerank_stability()</code></td>
+<td>Alpha-stability report: rank correlation across damping grid</td>
+</tr>
+<tr class="odd">
+<td><code>topic_sensitive_pagerank()</code></td>
+<td>Per-topic personalized PageRank with blended scores</td>
+</tr>
+<tr class="even">
+<td><code>topic_feeder_pagerank()</code></td>
+<td>Reverse-graph seeded PageRank: find pages that feed a target
+cluster</td>
+</tr>
+<tr class="odd">
+<td><code>trustrank()</code></td>
+<td>TrustRank: seed-biased PageRank from a trusted seed set</td>
+</tr>
+<tr class="even">
+<td><code>seed_prior()</code></td>
+<td>Build a teleport prior concentrated on seed URLs (shared by
+trustrank and topic_feeder_pagerank)</td>
+</tr>
+<tr class="odd">
+<td><code>align_prior_to_vertices()</code></td>
+<td>Align a prior/teleport weight data frame to the graph vertex
+set</td>
+</tr>
+<tr class="even">
+<td><code>ga4_entrance_teleport()</code></td>
+<td>Entrance/landing-page counts as a teleport (reset) vector</td>
+</tr>
+<tr class="odd">
+<td><code>ga4_page_transitions()</code></td>
+<td>Consecutive-page-view transition counts from a GA4 BigQuery
+export</td>
+</tr>
+<tr class="even">
+<td><code>smooth_transitions()</code></td>
+<td>Shrink sparse empirical transition shares toward structural
+prior</td>
+</tr>
+<tr class="odd">
+<td><code>transform_edge_weights()</code></td>
+<td>Per-source grouped edge weight transforms (emits
+transition_probability)</td>
+</tr>
+<tr class="even">
+<td><code>transform_weights()</code></td>
+<td>Apply rank/log/zipf/percentile transforms to a numeric vector</td>
+</tr>
+<tr class="odd">
+<td><code>validate_edge_weights()</code></td>
+<td>Validate per-source weight totals and warn on anomalies</td>
+</tr>
+<tr class="even">
+<td><code>screaming_frog_bundle()</code></td>
+<td>Compose Screaming Frog Internal:All + All Inlinks/Outlinks into a
+bundle</td>
+</tr>
+<tr class="odd">
+<td><code>screaming_frog_internal()</code></td>
+<td>Import Screaming Frog Internal: All export</td>
+</tr>
+<tr class="even">
+<td><code>screaming_frog_links()</code></td>
+<td>Import Screaming Frog All Inlinks / All Outlinks export</td>
+</tr>
+<tr class="odd">
+<td><code>pagerank_screaming_frog()</code></td>
+<td>Score a screaming_frog_bundle via pagerank()</td>
+</tr>
+<tr class="even">
+<td><code>resolve_canonical_urls()</code></td>
+<td>Resolve a URL vector through rel=canonical folds</td>
+</tr>
+<tr class="odd">
+<td><code>resolve_canonicals()</code></td>
+<td>Apply rel=canonical folds to an edge list</td>
+</tr>
+<tr class="even">
+<td><code>resolve_folded_urls()</code></td>
+<td>Resolve a URL vector through redirects plus canonicals</td>
+</tr>
+<tr class="odd">
+<td><code>resolve_redirect_urls()</code></td>
+<td>Resolve a URL vector through a redirect map</td>
+</tr>
+<tr class="even">
+<td><code>build_fold_map()</code></td>
+<td>Build a URL fold map from redirects and/or canonicals</td>
+</tr>
+<tr class="odd">
+<td><code>audit_canonicals()</code></td>
+<td>Diagnose rel=canonical fold coverage and conflicts</td>
+</tr>
+<tr class="even">
+<td><code>audit_fold()</code></td>
+<td>Diagnose the redirect+canonical URL fold map</td>
+</tr>
+<tr class="odd">
+<td><code>audit_redirects()</code></td>
+<td>Diagnose redirect chains, loops, and conflicts</td>
+</tr>
+<tr class="even">
+<td><code>aggregate_edges()</code></td>
+<td>Aggregate duplicate edges after URL folding with per-column
+semantics</td>
+</tr>
+<tr class="odd">
+<td><code>export_graph()</code></td>
+<td>Export graph + PageRank in graphml / dot / edgelist / pajek
+formats</td>
+</tr>
+<tr class="even">
+<td><code>launch_pagerank_explorer()</code></td>
+<td>Launch the interactive Shiny PageRank explorer</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div id="acknowledgments" class="section level2">
+<h2>Acknowledgments</h2>
+<p><code>pagerankr</code> wraps <a href="https://github.com/igraph/igraph">igraph</a>’s PageRank and HITS
+engines and implements a body of link-analysis research directly —
+PageRank (Brin &amp; Page), HITS (Kleinberg), SALSA (Lempel &amp;
+Moran), TrustRank (Gyöngyi, Garcia-Molina &amp; Pedersen), and
+Topic-Sensitive PageRank (Haveliwala). URL handling is delegated to the
+sibling <code>rurl</code> package.</p>
+<p>The full list of credits — prior art, dependencies, the research this
+code implements, and the data sources it serves — is in <a href="https://gitlab.com/bart-turczynski/pagerankr/-/blob/main/ACKNOWLEDGMENTS.md"><code>ACKNOWLEDGMENTS.md</code></a>.</p>
+</div>
+
+
+
+<!-- code folding -->
+
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>

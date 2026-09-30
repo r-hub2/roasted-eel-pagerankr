@@ -1,0 +1,693 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+
+<meta name="author" content="Bart Turczynski" />
+
+<meta name="date" content="2026-09-30" />
+
+<title>Presets: named views of the link graph</title>
+
+<script>// Pandoc 2.9 adds attributes on both header and div. We remove the former (to
+// be compatible with the behavior of Pandoc < 2.8).
+document.addEventListener('DOMContentLoaded', function(e) {
+  var hs = document.querySelectorAll("div.section[class*='level'] > :first-child");
+  var i, h, a;
+  for (i = 0; i < hs.length; i++) {
+    h = hs[i];
+    if (!/^h[1-6]$/i.test(h.tagName)) continue;  // it should be a header h1-h6
+    a = h.attributes;
+    while (a.length > 0) h.removeAttribute(a[0].name);
+  }
+});
+</script>
+
+<style type="text/css">
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+span.underline{text-decoration: underline;}
+div.column{display: inline-block; vertical-align: top; width: 50%;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+</style>
+
+
+
+<style type="text/css">
+code {
+white-space: pre;
+}
+.sourceCode {
+overflow: visible;
+}
+</style>
+<style type="text/css" data-origin="pandoc">
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+{ counter-reset: source-line 0; }
+pre.numberSource code > span
+{ position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+{ content: counter(source-line);
+position: relative; left: -1em; text-align: right; vertical-align: baseline;
+border: none; display: inline-block;
+-webkit-touch-callout: none; -webkit-user-select: none;
+-khtml-user-select: none; -moz-user-select: none;
+-ms-user-select: none; user-select: none;
+padding: 0 4px; width: 4em;
+color: #aaaaaa;
+}
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa; padding-left: 4px; }
+div.sourceCode
+{ }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ff0000; font-weight: bold; } 
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.at { color: #7d9029; } 
+code span.bn { color: #40a070; } 
+code span.bu { color: #008000; } 
+code span.cf { color: #007020; font-weight: bold; } 
+code span.ch { color: #4070a0; } 
+code span.cn { color: #880000; } 
+code span.co { color: #60a0b0; font-style: italic; } 
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.do { color: #ba2121; font-style: italic; } 
+code span.dt { color: #902000; } 
+code span.dv { color: #40a070; } 
+code span.er { color: #ff0000; font-weight: bold; } 
+code span.ex { } 
+code span.fl { color: #40a070; } 
+code span.fu { color: #06287e; } 
+code span.im { color: #008000; font-weight: bold; } 
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.kw { color: #007020; font-weight: bold; } 
+code span.op { color: #666666; } 
+code span.ot { color: #007020; } 
+code span.pp { color: #bc7a00; } 
+code span.sc { color: #4070a0; } 
+code span.ss { color: #bb6688; } 
+code span.st { color: #4070a0; } 
+code span.va { color: #19177c; } 
+code span.vs { color: #4070a0; } 
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } 
+</style>
+<script>
+// apply pandoc div.sourceCode style to pre.sourceCode instead
+(function() {
+  var sheets = document.styleSheets;
+  for (var i = 0; i < sheets.length; i++) {
+    if (sheets[i].ownerNode.dataset["origin"] !== "pandoc") continue;
+    try { var rules = sheets[i].cssRules; } catch (e) { continue; }
+    var j = 0;
+    while (j < rules.length) {
+      var rule = rules[j];
+      // check if there is a div.sourceCode rule
+      if (rule.type !== rule.STYLE_RULE || rule.selectorText !== "div.sourceCode") {
+        j++;
+        continue;
+      }
+      var style = rule.style.cssText;
+      // check if color or background-color is set
+      if (rule.style.color === '' && rule.style.backgroundColor === '') {
+        j++;
+        continue;
+      }
+      // replace div.sourceCode by a pre.sourceCode rule
+      sheets[i].deleteRule(j);
+      sheets[i].insertRule('pre.sourceCode{' + style + '}', j);
+    }
+  }
+})();
+</script>
+
+
+
+
+<style type="text/css">body {
+background-color: #fff;
+margin: 1em auto;
+max-width: 700px;
+overflow: visible;
+padding-left: 2em;
+padding-right: 2em;
+font-family: "Open Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+font-size: 14px;
+line-height: 1.35;
+}
+#TOC {
+clear: both;
+margin: 0 0 10px 10px;
+padding: 4px;
+width: 400px;
+border: 1px solid #CCCCCC;
+border-radius: 5px;
+background-color: #f6f6f6;
+font-size: 13px;
+line-height: 1.3;
+}
+#TOC .toctitle {
+font-weight: bold;
+font-size: 15px;
+margin-left: 5px;
+}
+#TOC ul {
+padding-left: 40px;
+margin-left: -1.5em;
+margin-top: 5px;
+margin-bottom: 5px;
+}
+#TOC ul ul {
+margin-left: -2em;
+}
+#TOC li {
+line-height: 16px;
+}
+table {
+margin: 1em auto;
+border-width: 1px;
+border-color: #DDDDDD;
+border-style: outset;
+border-collapse: collapse;
+}
+table th {
+border-width: 2px;
+padding: 5px;
+border-style: inset;
+}
+table td {
+border-width: 1px;
+border-style: inset;
+line-height: 18px;
+padding: 5px 5px;
+}
+table, table th, table td {
+border-left-style: none;
+border-right-style: none;
+}
+table thead, table tr.even {
+background-color: #f7f7f7;
+}
+p {
+margin: 0.5em 0;
+}
+blockquote {
+background-color: #f6f6f6;
+padding: 0.25em 0.75em;
+}
+hr {
+border-style: solid;
+border: none;
+border-top: 1px solid #777;
+margin: 28px 0;
+}
+dl {
+margin-left: 0;
+}
+dl dd {
+margin-bottom: 13px;
+margin-left: 13px;
+}
+dl dt {
+font-weight: bold;
+}
+ul {
+margin-top: 0;
+}
+ul li {
+list-style: circle outside;
+}
+ul ul {
+margin-bottom: 0;
+}
+pre, code {
+background-color: #f7f7f7;
+border-radius: 3px;
+color: #333;
+white-space: pre-wrap; 
+}
+pre {
+border-radius: 3px;
+margin: 5px 0px 10px 0px;
+padding: 10px;
+}
+pre:not([class]) {
+background-color: #f7f7f7;
+}
+code {
+font-family: Consolas, Monaco, 'Courier New', monospace;
+font-size: 85%;
+}
+p > code, li > code {
+padding: 2px 0px;
+}
+div.figure {
+text-align: center;
+}
+img {
+background-color: #FFFFFF;
+padding: 2px;
+border: 1px solid #DDDDDD;
+border-radius: 3px;
+border: 1px solid #CCCCCC;
+margin: 0 5px;
+}
+h1 {
+margin-top: 0;
+font-size: 35px;
+line-height: 40px;
+}
+h2 {
+border-bottom: 4px solid #f7f7f7;
+padding-top: 10px;
+padding-bottom: 2px;
+font-size: 145%;
+}
+h3 {
+border-bottom: 2px solid #f7f7f7;
+padding-top: 10px;
+font-size: 120%;
+}
+h4 {
+border-bottom: 1px solid #f7f7f7;
+margin-left: 8px;
+font-size: 105%;
+}
+h5, h6 {
+border-bottom: 1px solid #ccc;
+font-size: 105%;
+}
+a {
+color: #0033dd;
+text-decoration: none;
+}
+a:hover {
+color: #6666ff; }
+a:visited {
+color: #800080; }
+a:visited:hover {
+color: #BB00BB; }
+a[href^="http:"] {
+text-decoration: underline; }
+a[href^="https:"] {
+text-decoration: underline; }
+
+code > span.kw { color: #555; font-weight: bold; } 
+code > span.dt { color: #902000; } 
+code > span.dv { color: #40a070; } 
+code > span.bn { color: #d14; } 
+code > span.fl { color: #d14; } 
+code > span.ch { color: #d14; } 
+code > span.st { color: #d14; } 
+code > span.co { color: #888888; font-style: italic; } 
+code > span.ot { color: #007020; } 
+code > span.al { color: #ff0000; font-weight: bold; } 
+code > span.fu { color: #900; font-weight: bold; } 
+code > span.er { color: #a61717; background-color: #e3d2d2; } 
+</style>
+
+
+
+
+</head>
+
+<body>
+
+
+
+
+<h1 class="title toc-ignore">Presets: named views of the link graph</h1>
+<h4 class="author">Bart Turczynski</h4>
+<h4 class="date">2026-09-30</h4>
+
+
+<div id="TOC">
+<ul>
+<li><a href="#why-presets-exist" id="toc-why-presets-exist">Why presets
+exist</a></li>
+<li><a href="#the-four-presets" id="toc-the-four-presets">The four
+presets</a>
+<ul>
+<li><a href="#raw-the-faithful-baseline" id="toc-raw-the-faithful-baseline"><code>&quot;raw&quot;</code> — the faithful
+baseline</a></li>
+<li><a href="#declared-a-pin-not-a-change" id="toc-declared-a-pin-not-a-change"><code>&quot;declared&quot;</code> — a pin,
+not a change</a></li>
+<li><a href="#reversed-the-feeder-view" id="toc-reversed-the-feeder-view"><code>&quot;reversed&quot;</code> — the feeder
+view</a></li>
+<li><a href="#content-stop-letting-the-navigation-rank-the-site" id="toc-content-stop-letting-the-navigation-rank-the-site"><code>&quot;content&quot;</code>
+— stop letting the navigation rank the site</a></li>
+</ul></li>
+<li><a href="#layers-vs.-presets-raw-real-and-annotated" id="toc-layers-vs.-presets-raw-real-and-annotated">Layers vs. presets:
+raw, real, and annotated</a></li>
+<li><a href="#precedence-explicit-argument-preset-default" id="toc-precedence-explicit-argument-preset-default">Precedence:
+explicit argument &gt; preset &gt; default</a></li>
+<li><a href="#inspecting-and-adapting-a-bundle" id="toc-inspecting-and-adapting-a-bundle">Inspecting and adapting a
+bundle</a></li>
+<li><a href="#provenance-in-the-transition-audit" id="toc-provenance-in-the-transition-audit">Provenance in the transition
+audit</a></li>
+<li><a href="#see-also" id="toc-see-also">See also</a></li>
+</ul>
+</div>
+
+<div id="why-presets-exist" class="section level2">
+<h2>Why presets exist</h2>
+<p>PageRank is a lens, not the deliverable. The same crawl answers
+different questions depending on how you prepare the graph first:
+<em>what does the site look like exactly as crawled?</em> <em>What does
+it look like once its own canonical and nofollow declarations are
+honored?</em> <em>Which pages feed authority outward rather than collect
+it?</em> <em>What survives once site chrome stops voting?</em></p>
+<p><code>pagerank()</code> can express all of those, but only through a
+long argument list. A <strong>preset</strong> is a small named bundle of
+those arguments describing one recurring view, so a view becomes a
+one-liner:</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" tabindex="-1"></a>edges <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(</span>
+<span id="cb1-2"><a href="#cb1-2" tabindex="-1"></a>  <span class="at">from =</span> <span class="fu">c</span>(<span class="st">&quot;A&quot;</span>, <span class="st">&quot;A&quot;</span>, <span class="st">&quot;B&quot;</span>, <span class="st">&quot;C&quot;</span>),</span>
+<span id="cb1-3"><a href="#cb1-3" tabindex="-1"></a>  <span class="at">to =</span> <span class="fu">c</span>(<span class="st">&quot;B&quot;</span>, <span class="st">&quot;C&quot;</span>, <span class="st">&quot;A&quot;</span>, <span class="st">&quot;A&quot;</span>)</span>
+<span id="cb1-4"><a href="#cb1-4" tabindex="-1"></a>)</span>
+<span id="cb1-5"><a href="#cb1-5" tabindex="-1"></a></span>
+<span id="cb1-6"><a href="#cb1-6" tabindex="-1"></a><span class="fu">pagerank</span>(edges, <span class="at">preset =</span> <span class="st">&quot;raw&quot;</span>)</span>
+<span id="cb1-7"><a href="#cb1-7" tabindex="-1"></a><span class="co">#&gt;   node_name  pagerank</span></span>
+<span id="cb1-8"><a href="#cb1-8" tabindex="-1"></a><span class="co">#&gt; 1         A 0.4864865</span></span>
+<span id="cb1-9"><a href="#cb1-9" tabindex="-1"></a><span class="co">#&gt; 2         B 0.2567568</span></span>
+<span id="cb1-10"><a href="#cb1-10" tabindex="-1"></a><span class="co">#&gt; 3         C 0.2567568</span></span></code></pre></div>
+<p>Presets are opt-in. <code>pagerank()</code> with no
+<code>preset</code> behaves exactly as it always has — nothing here
+changes a default.</p>
+</div>
+<div id="the-four-presets" class="section level2">
+<h2>The four presets</h2>
+<div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" tabindex="-1"></a><span class="fu">pr_preset</span>(<span class="st">&quot;raw&quot;</span>)</span>
+<span id="cb2-2"><a href="#cb2-2" tabindex="-1"></a><span class="co">#&gt; $self_loops</span></span>
+<span id="cb2-3"><a href="#cb2-3" tabindex="-1"></a><span class="co">#&gt; [1] &quot;keep&quot;</span></span>
+<span id="cb2-4"><a href="#cb2-4" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb2-5"><a href="#cb2-5" tabindex="-1"></a><span class="co">#&gt; $drop_isolates_flag</span></span>
+<span id="cb2-6"><a href="#cb2-6" tabindex="-1"></a><span class="co">#&gt; [1] FALSE</span></span>
+<span id="cb2-7"><a href="#cb2-7" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb2-8"><a href="#cb2-8" tabindex="-1"></a><span class="co">#&gt; $nofollow_action</span></span>
+<span id="cb2-9"><a href="#cb2-9" tabindex="-1"></a><span class="co">#&gt; [1] &quot;keep&quot;</span></span>
+<span id="cb2-10"><a href="#cb2-10" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb2-11"><a href="#cb2-11" tabindex="-1"></a><span class="co">#&gt; $out_of_scope_fold</span></span>
+<span id="cb2-12"><a href="#cb2-12" tabindex="-1"></a><span class="co">#&gt; [1] &quot;keep&quot;</span></span>
+<span id="cb2-13"><a href="#cb2-13" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb2-14"><a href="#cb2-14" tabindex="-1"></a><span class="co">#&gt; attr(,&quot;pr_preset_name&quot;)</span></span>
+<span id="cb2-15"><a href="#cb2-15" tabindex="-1"></a><span class="co">#&gt; [1] &quot;raw&quot;</span></span></code></pre></div>
+<p>A preset is a plain named list, so you can always print one to see
+exactly what it does. Nothing is hidden: the table below is the whole
+registry.</p>
+<table>
+<colgroup>
+<col width="33%" />
+<col width="33%" />
+<col width="33%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Preset</th>
+<th>Expands to</th>
+<th>The view</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>&quot;raw&quot;</code></td>
+<td><code>self_loops = &quot;keep&quot;</code>,
+<code>drop_isolates_flag = FALSE</code>,
+<code>nofollow_action = &quot;keep&quot;</code>,
+<code>out_of_scope_fold = &quot;keep&quot;</code></td>
+<td>The graph exactly as crawled. Nothing is applied;
+<code>rel=nofollow</code> votes like any other link. The faithful
+baseline.</td>
+</tr>
+<tr class="even">
+<td><code>&quot;declared&quot;</code></td>
+<td><code>self_loops = &quot;drop&quot;</code>,
+<code>drop_isolates_flag = TRUE</code>,
+<code>nofollow_action = &quot;evaporate&quot;</code>,
+<code>robots_blocked_action = &quot;show&quot;</code>,
+<code>out_of_scope_fold = &quot;relabel&quot;</code></td>
+<td>The graph after honoring what the site <em>declares</em> — nofollow,
+canonicals, redirects, robots. A <strong>pure pin of today’s
+defaults</strong>.</td>
+</tr>
+<tr class="odd">
+<td><code>&quot;reversed&quot;</code></td>
+<td><code>reverse = TRUE</code></td>
+<td>Every edge flipped: a page scores highly when it points <em>at</em>
+well-connected pages. The feeder view.</td>
+</tr>
+<tr class="even">
+<td><code>&quot;content&quot;</code></td>
+<td><code>placement_weights = c(content = 1, nav = 0.1, header = 0.1, footer = 0.1, aside = 0.1)</code></td>
+<td>Links in the main content keep their full vote; links in site chrome
+are discounted to a tenth.</td>
+</tr>
+</tbody>
+</table>
+<div id="raw-the-faithful-baseline" class="section level3">
+<h3><code>&quot;raw&quot;</code> — the faithful baseline</h3>
+<p>The naive view, and deliberately the one the package makes easiest to
+state. Every other view is a claim about what <em>should</em> count;
+<code>&quot;raw&quot;</code> is the claim-free comparison point. Reach for it when
+you want to see how much of a ranking your own preparation choices
+produced.</p>
+</div>
+<div id="declared-a-pin-not-a-change" class="section level3">
+<h3><code>&quot;declared&quot;</code> — a pin, not a change</h3>
+<p><code>&quot;declared&quot;</code> sets every value to what
+<code>pagerank()</code> already defaults to. Running with it produces
+byte-identical scores to running without it:</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" tabindex="-1"></a><span class="fu">identical</span>(</span>
+<span id="cb3-2"><a href="#cb3-2" tabindex="-1"></a>  <span class="fu">pagerank</span>(edges, <span class="at">preset =</span> <span class="st">&quot;declared&quot;</span>)<span class="sc">$</span>pagerank,</span>
+<span id="cb3-3"><a href="#cb3-3" tabindex="-1"></a>  <span class="fu">pagerank</span>(edges)<span class="sc">$</span>pagerank</span>
+<span id="cb3-4"><a href="#cb3-4" tabindex="-1"></a>)</span>
+<span id="cb3-5"><a href="#cb3-5" tabindex="-1"></a><span class="co">#&gt; [1] TRUE</span></span></code></pre></div>
+<p>That is the point. Its value is <em>provenance</em>: a run made with
+<code>preset = &quot;declared&quot;</code> is a recorded, auditable statement that
+the declared view was intended, and it stays pinned to the bundle as
+documented even if a future package default moves.</p>
+<p>Note the boundary: a preset sets <strong>policy, never data</strong>.
+<code>&quot;declared&quot;</code> turns on <em>honoring</em> canonicals and
+redirects, but the canonical and redirect tables themselves
+(<code>canonicals_df</code>, <code>redirects_df</code>,
+<code>indexability_df</code>) are still yours to supply.</p>
+</div>
+<div id="reversed-the-feeder-view" class="section level3">
+<h3><code>&quot;reversed&quot;</code> — the feeder view</h3>
+<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" tabindex="-1"></a><span class="fu">pagerank</span>(edges, <span class="at">preset =</span> <span class="st">&quot;reversed&quot;</span>)</span>
+<span id="cb4-2"><a href="#cb4-2" tabindex="-1"></a><span class="co">#&gt;   node_name  pagerank</span></span>
+<span id="cb4-3"><a href="#cb4-3" tabindex="-1"></a><span class="co">#&gt; 1         A 0.4864865</span></span>
+<span id="cb4-4"><a href="#cb4-4" tabindex="-1"></a><span class="co">#&gt; 2         B 0.2567568</span></span>
+<span id="cb4-5"><a href="#cb4-5" tabindex="-1"></a><span class="co">#&gt; 3         C 0.2567568</span></span></code></pre></div>
+<p><code>topic_feeder_pagerank()</code> already reverses the graph
+itself, so <code>preset = &quot;reversed&quot;</code> is a harmless no-op there
+rather than an error.</p>
+</div>
+<div id="content-stop-letting-the-navigation-rank-the-site" class="section level3">
+<h3><code>&quot;content&quot;</code> — stop letting the navigation rank the
+site</h3>
+<p>Site chrome — navigation, header, footer, sidebar — is typically the
+large majority of a crawl’s edges. Left unweighted it does not merely
+influence the ranking, it <em>manufactures</em> it: every page links to
+the same handful of chrome targets, so those targets win by sheer
+repetition regardless of editorial intent.</p>
+<p><code>&quot;content&quot;</code> discounts them. It needs one thing from you:
+<code>placement_col</code>, the name of a column saying which page
+region each link was found in. That is data, so the preset cannot supply
+it.</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" tabindex="-1"></a>placed <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(</span>
+<span id="cb5-2"><a href="#cb5-2" tabindex="-1"></a>  <span class="at">from =</span> <span class="fu">c</span>(<span class="st">&quot;A&quot;</span>, <span class="st">&quot;A&quot;</span>, <span class="st">&quot;B&quot;</span>, <span class="st">&quot;C&quot;</span>),</span>
+<span id="cb5-3"><a href="#cb5-3" tabindex="-1"></a>  <span class="at">to =</span> <span class="fu">c</span>(<span class="st">&quot;B&quot;</span>, <span class="st">&quot;C&quot;</span>, <span class="st">&quot;A&quot;</span>, <span class="st">&quot;A&quot;</span>),</span>
+<span id="cb5-4"><a href="#cb5-4" tabindex="-1"></a>  <span class="at">region =</span> <span class="fu">c</span>(<span class="st">&quot;content&quot;</span>, <span class="st">&quot;footer&quot;</span>, <span class="st">&quot;content&quot;</span>, <span class="st">&quot;content&quot;</span>)</span>
+<span id="cb5-5"><a href="#cb5-5" tabindex="-1"></a>)</span>
+<span id="cb5-6"><a href="#cb5-6" tabindex="-1"></a></span>
+<span id="cb5-7"><a href="#cb5-7" tabindex="-1"></a><span class="fu">pagerank</span>(placed, <span class="at">preset =</span> <span class="st">&quot;content&quot;</span>, <span class="at">placement_col =</span> <span class="st">&quot;region&quot;</span>)</span>
+<span id="cb5-8"><a href="#cb5-8" tabindex="-1"></a><span class="co">#&gt;   node_name   pagerank</span></span>
+<span id="cb5-9"><a href="#cb5-9" tabindex="-1"></a><span class="co">#&gt; 1         A 0.48648649</span></span>
+<span id="cb5-10"><a href="#cb5-10" tabindex="-1"></a><span class="co">#&gt; 2         B 0.42592138</span></span>
+<span id="cb5-11"><a href="#cb5-11" tabindex="-1"></a><span class="co">#&gt; 3         C 0.08759214</span></span></code></pre></div>
+<p><code>B</code> and <code>C</code> are each linked once from
+<code>A</code>. Unweighted they tie; weighted, the footer link is worth
+a tenth of the in-content one and <code>C</code> falls behind.</p>
+<p>The accepted region terms are <code>content</code>, <code>nav</code>,
+<code>header</code>, <code>footer</code> and <code>aside</code>.
+<code>pagerank_screaming_frog()</code> derives them for you from the
+crawl, so there <code>preset = &quot;content&quot;</code> works with no extra
+argument.</p>
+<p>Two properties worth stating explicitly:</p>
+<ul>
+<li><strong>All five terms are named.</strong> Regions absent from
+<code>placement_weights</code> keep weight 1, which is what makes a
+partial recipe like <code>c(nav = 0.1)</code> mean “discount nav, leave
+everything else alone”. A preset is a <em>complete</em> recipe, so it
+names every term — otherwise footer and aside would quietly outweigh nav
+tenfold.</li>
+<li><strong>Edges are downweighted, never dropped.</strong> Region
+detection is a heuristic, so a misclassified content link at 0.1 is a
+small error where a dropped one is a silent deletion. Dropping most of a
+graph also manufactures isolates and dangling pages, at which point you
+are measuring your own sink policy rather than the site.</li>
+</ul>
+</div>
+</div>
+<div id="layers-vs.-presets-raw-real-and-annotated" class="section level2">
+<h2>Layers vs. presets: raw, real, and annotated</h2>
+<p>A preset bundles <strong>policy</strong> — the graph-hygiene and
+weighting knobs above. It never touches <strong>data</strong>: the
+<code>redirects_df</code>, <code>canonicals_df</code>,
+<code>indexability_df</code> and <code>status_df</code> tables you
+supply (or leave <code>NULL</code>). Those tables decide a second,
+orthogonal thing — how much of the crawl is <em>folded away</em> before
+scoring — and that is its own view model, layered on top of whichever
+preset you pick. Three layers, from the crawl as collected to the crawl
+fully interpreted:</p>
+<p><strong>(a) Raw — every crawled URL is its own node.</strong> Nothing
+is folded: a redirecting URL keeps the PageRank it receives instead of
+passing it on, a canonicalized page stays separate from its canonical,
+and a 404 scores like any live page. You get this by <em>not
+supplying</em> the fold tables — they all default <code>NULL</code>, so
+the raw layer is the <em>absence of data</em>. This is exactly why the
+<code>&quot;raw&quot;</code> preset alone cannot guarantee it: a preset sets
+policy, and no policy can un-supply a <code>redirects_df</code> you
+passed. On the bare <code>pagerank()</code> path the raw layer is the
+default (you supply no tables), and <code>preset = &quot;raw&quot;</code>
+additionally relaxes the hygiene policy so nothing at all is applied. On
+the Screaming Frog path, where the wrapper builds those tables from the
+bundle for you, <code>preset = &quot;raw&quot;</code> is special-cased to switch
+the folding back off — so it delivers the raw layer there too.</p>
+<p><strong>(b) Real — redirects and canonicals are followed; dead pages
+collect but cannot pass.</strong> Supply the fold tables and the graph
+reflects the <em>live, canonical</em> corpus a search engine would
+score: redirect and canonical sources fold into their terminal target
+(an alias, not a separate page), and the “collects PageRank but cannot
+pass it” class — <code>noindex</code>, robots-blocked, and 4xx/5xx
+response-dead pages — routes its throughput to a shared waste sink
+instead of recirculating it (see <code>?pagerank</code> and
+<code>vignette(&quot;pagerankr-usage&quot;)</code> for why the sink is the only
+faithful choice for a dead page). This is the view most internal-link
+audits want; <code>pagerank_screaming_frog()</code> assembles it from
+the crawl by default.</p>
+<p><strong>(c) Annotated — the <code>page_state</code>
+indicator.</strong> Layer (b) hands a folded score to a page that may be
+a black hole: a 404 can <em>amass</em> PageRank from every page still
+linking to it, then evaporate it to the sink. That score is real mass
+but not earned authority, and nothing else on the row distinguishes it
+from a strong live page. So whenever <code>indexability_df</code> or
+<code>status_df</code> is supplied, the result gains a
+<code>page_state</code> column tagging each row <code>live</code>,
+<code>noindex</code>, <code>robots_blocked</code>, or
+<code>response_dead</code> (the highest-precedence signal wins). The
+annotation is the package’s answer to “why is this dead URL ranking?” —
+and the reason such rows can be <em>kept</em> in the output instead of
+silently dropped.</p>
+<p>Layers and presets compose freely: a layer is which data you fold, a
+preset is which policy you bundle, and you choose them
+independently.</p>
+</div>
+<div id="precedence-explicit-argument-preset-default" class="section level2">
+<h2>Precedence: explicit argument &gt; preset &gt; default</h2>
+<p>A preset never silently overrides something you typed.</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" tabindex="-1"></a><span class="co"># The raw bundle says nofollow_action = &quot;keep&quot;; the explicit argument wins.</span></span>
+<span id="cb6-2"><a href="#cb6-2" tabindex="-1"></a><span class="fu">attr</span>(</span>
+<span id="cb6-3"><a href="#cb6-3" tabindex="-1"></a>  <span class="fu">pagerank</span>(edges, <span class="at">preset =</span> <span class="st">&quot;raw&quot;</span>, <span class="at">nofollow_action =</span> <span class="st">&quot;drop&quot;</span>),</span>
+<span id="cb6-4"><a href="#cb6-4" tabindex="-1"></a>  <span class="st">&quot;transition_audit&quot;</span></span>
+<span id="cb6-5"><a href="#cb6-5" tabindex="-1"></a>)<span class="sc">$</span>config<span class="sc">$</span>nofollow_action</span>
+<span id="cb6-6"><a href="#cb6-6" tabindex="-1"></a><span class="co">#&gt; [1] &quot;drop&quot;</span></span></code></pre></div>
+<p>This holds through every wrapper that forwards <code>...</code> to
+<code>pagerank()</code> — <code>trustrank()</code>,
+<code>topic_sensitive_pagerank()</code>,
+<code>topic_feeder_pagerank()</code> and
+<code>pagerank_screaming_frog()</code> — with one boundary: arguments a
+wrapper sets <em>itself</em> are wrapper-owned, and a preset cannot
+change those.</p>
+<p>Presets are not composable with each other; <code>preset</code> takes
+a single bundle. They do not need to be: <code>&quot;content&quot;</code> sets
+only placement weights and leaves every hygiene knob at its default, and
+the defaults <em>are</em> the <code>&quot;declared&quot;</code> view.</p>
+</div>
+<div id="inspecting-and-adapting-a-bundle" class="section level2">
+<h2>Inspecting and adapting a bundle</h2>
+<p>Because a preset is an ordinary list, you can splice it, print it, or
+use it as a starting point:</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" tabindex="-1"></a><span class="co"># Splice a bundle into a call</span></span>
+<span id="cb7-2"><a href="#cb7-2" tabindex="-1"></a><span class="fu">do.call</span>(pagerank, <span class="fu">c</span>(<span class="fu">list</span>(edges), <span class="fu">pr_preset</span>(<span class="st">&quot;raw&quot;</span>)))</span>
+<span id="cb7-3"><a href="#cb7-3" tabindex="-1"></a><span class="co">#&gt;   node_name  pagerank</span></span>
+<span id="cb7-4"><a href="#cb7-4" tabindex="-1"></a><span class="co">#&gt; 1         A 0.4864865</span></span>
+<span id="cb7-5"><a href="#cb7-5" tabindex="-1"></a><span class="co">#&gt; 2         B 0.2567568</span></span>
+<span id="cb7-6"><a href="#cb7-6" tabindex="-1"></a><span class="co">#&gt; 3         C 0.2567568</span></span>
+<span id="cb7-7"><a href="#cb7-7" tabindex="-1"></a></span>
+<span id="cb7-8"><a href="#cb7-8" tabindex="-1"></a><span class="co"># Start from a preset and adjust</span></span>
+<span id="cb7-9"><a href="#cb7-9" tabindex="-1"></a>my_view <span class="ot">&lt;-</span> <span class="fu">pr_preset</span>(<span class="st">&quot;raw&quot;</span>)</span>
+<span id="cb7-10"><a href="#cb7-10" tabindex="-1"></a>my_view<span class="sc">$</span>drop_isolates_flag <span class="ot">&lt;-</span> <span class="cn">TRUE</span></span>
+<span id="cb7-11"><a href="#cb7-11" tabindex="-1"></a><span class="fu">pagerank</span>(edges, <span class="at">preset =</span> my_view)</span>
+<span id="cb7-12"><a href="#cb7-12" tabindex="-1"></a><span class="co">#&gt;   node_name  pagerank</span></span>
+<span id="cb7-13"><a href="#cb7-13" tabindex="-1"></a><span class="co">#&gt; 1         A 0.4864865</span></span>
+<span id="cb7-14"><a href="#cb7-14" tabindex="-1"></a><span class="co">#&gt; 2         B 0.2567568</span></span>
+<span id="cb7-15"><a href="#cb7-15" tabindex="-1"></a><span class="co">#&gt; 3         C 0.2567568</span></span></code></pre></div>
+<p>Hand-rolled bundles are validated against <code>pagerank()</code>’s
+formals, so a misspelled argument fails loudly instead of sliding
+through <code>...</code>.</p>
+</div>
+<div id="provenance-in-the-transition-audit" class="section level2">
+<h2>Provenance in the transition audit</h2>
+<p>The audit attached to every result records which named view produced
+it:</p>
+<div class="sourceCode" id="cb8"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" tabindex="-1"></a><span class="fu">attr</span>(<span class="fu">pagerank</span>(edges, <span class="at">preset =</span> <span class="st">&quot;raw&quot;</span>), <span class="st">&quot;transition_audit&quot;</span>)<span class="sc">$</span>config<span class="sc">$</span>preset</span>
+<span id="cb8-2"><a href="#cb8-2" tabindex="-1"></a><span class="co">#&gt; [1] &quot;raw&quot;</span></span></code></pre></div>
+<p>It records the preset name for a registered preset (whether passed by
+name or as a <code>pr_preset()</code> result), <code>&quot;custom&quot;</code> for
+a hand-rolled bundle, and <code>NULL</code> when no preset was used. Two
+runs that expand to the same configuration are therefore still
+distinguishable by the intent behind them — which, for a pure pin like
+<code>&quot;declared&quot;</code>, is the only durable record that intent
+existed.</p>
+</div>
+<div id="see-also" class="section level2">
+<h2>See also</h2>
+<ul>
+<li><code>?pr_preset</code> for the reference documentation.</li>
+<li><code>vignette(&quot;pagerankr-usage&quot;)</code> for the underlying
+arguments each preset sets.</li>
+</ul>
+</div>
+
+
+
+<!-- code folding -->
+
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>

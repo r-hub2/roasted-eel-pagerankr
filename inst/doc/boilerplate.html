@@ -1,0 +1,778 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+
+<meta name="author" content="Bart Turczynski" />
+
+<meta name="date" content="2026-09-30" />
+
+<title>Boilerplate detection: template links that live in the content</title>
+
+<script>// Pandoc 2.9 adds attributes on both header and div. We remove the former (to
+// be compatible with the behavior of Pandoc < 2.8).
+document.addEventListener('DOMContentLoaded', function(e) {
+  var hs = document.querySelectorAll("div.section[class*='level'] > :first-child");
+  var i, h, a;
+  for (i = 0; i < hs.length; i++) {
+    h = hs[i];
+    if (!/^h[1-6]$/i.test(h.tagName)) continue;  // it should be a header h1-h6
+    a = h.attributes;
+    while (a.length > 0) h.removeAttribute(a[0].name);
+  }
+});
+</script>
+
+<style type="text/css">
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+span.underline{text-decoration: underline;}
+div.column{display: inline-block; vertical-align: top; width: 50%;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+</style>
+
+
+
+<style type="text/css">
+code {
+white-space: pre;
+}
+.sourceCode {
+overflow: visible;
+}
+</style>
+<style type="text/css" data-origin="pandoc">
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+{ counter-reset: source-line 0; }
+pre.numberSource code > span
+{ position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+{ content: counter(source-line);
+position: relative; left: -1em; text-align: right; vertical-align: baseline;
+border: none; display: inline-block;
+-webkit-touch-callout: none; -webkit-user-select: none;
+-khtml-user-select: none; -moz-user-select: none;
+-ms-user-select: none; user-select: none;
+padding: 0 4px; width: 4em;
+color: #aaaaaa;
+}
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa; padding-left: 4px; }
+div.sourceCode
+{ }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ff0000; font-weight: bold; } 
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.at { color: #7d9029; } 
+code span.bn { color: #40a070; } 
+code span.bu { color: #008000; } 
+code span.cf { color: #007020; font-weight: bold; } 
+code span.ch { color: #4070a0; } 
+code span.cn { color: #880000; } 
+code span.co { color: #60a0b0; font-style: italic; } 
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.do { color: #ba2121; font-style: italic; } 
+code span.dt { color: #902000; } 
+code span.dv { color: #40a070; } 
+code span.er { color: #ff0000; font-weight: bold; } 
+code span.ex { } 
+code span.fl { color: #40a070; } 
+code span.fu { color: #06287e; } 
+code span.im { color: #008000; font-weight: bold; } 
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.kw { color: #007020; font-weight: bold; } 
+code span.op { color: #666666; } 
+code span.ot { color: #007020; } 
+code span.pp { color: #bc7a00; } 
+code span.sc { color: #4070a0; } 
+code span.ss { color: #bb6688; } 
+code span.st { color: #4070a0; } 
+code span.va { color: #19177c; } 
+code span.vs { color: #4070a0; } 
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } 
+</style>
+<script>
+// apply pandoc div.sourceCode style to pre.sourceCode instead
+(function() {
+  var sheets = document.styleSheets;
+  for (var i = 0; i < sheets.length; i++) {
+    if (sheets[i].ownerNode.dataset["origin"] !== "pandoc") continue;
+    try { var rules = sheets[i].cssRules; } catch (e) { continue; }
+    var j = 0;
+    while (j < rules.length) {
+      var rule = rules[j];
+      // check if there is a div.sourceCode rule
+      if (rule.type !== rule.STYLE_RULE || rule.selectorText !== "div.sourceCode") {
+        j++;
+        continue;
+      }
+      var style = rule.style.cssText;
+      // check if color or background-color is set
+      if (rule.style.color === '' && rule.style.backgroundColor === '') {
+        j++;
+        continue;
+      }
+      // replace div.sourceCode by a pre.sourceCode rule
+      sheets[i].deleteRule(j);
+      sheets[i].insertRule('pre.sourceCode{' + style + '}', j);
+    }
+  }
+})();
+</script>
+
+
+
+
+<style type="text/css">body {
+background-color: #fff;
+margin: 1em auto;
+max-width: 700px;
+overflow: visible;
+padding-left: 2em;
+padding-right: 2em;
+font-family: "Open Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+font-size: 14px;
+line-height: 1.35;
+}
+#TOC {
+clear: both;
+margin: 0 0 10px 10px;
+padding: 4px;
+width: 400px;
+border: 1px solid #CCCCCC;
+border-radius: 5px;
+background-color: #f6f6f6;
+font-size: 13px;
+line-height: 1.3;
+}
+#TOC .toctitle {
+font-weight: bold;
+font-size: 15px;
+margin-left: 5px;
+}
+#TOC ul {
+padding-left: 40px;
+margin-left: -1.5em;
+margin-top: 5px;
+margin-bottom: 5px;
+}
+#TOC ul ul {
+margin-left: -2em;
+}
+#TOC li {
+line-height: 16px;
+}
+table {
+margin: 1em auto;
+border-width: 1px;
+border-color: #DDDDDD;
+border-style: outset;
+border-collapse: collapse;
+}
+table th {
+border-width: 2px;
+padding: 5px;
+border-style: inset;
+}
+table td {
+border-width: 1px;
+border-style: inset;
+line-height: 18px;
+padding: 5px 5px;
+}
+table, table th, table td {
+border-left-style: none;
+border-right-style: none;
+}
+table thead, table tr.even {
+background-color: #f7f7f7;
+}
+p {
+margin: 0.5em 0;
+}
+blockquote {
+background-color: #f6f6f6;
+padding: 0.25em 0.75em;
+}
+hr {
+border-style: solid;
+border: none;
+border-top: 1px solid #777;
+margin: 28px 0;
+}
+dl {
+margin-left: 0;
+}
+dl dd {
+margin-bottom: 13px;
+margin-left: 13px;
+}
+dl dt {
+font-weight: bold;
+}
+ul {
+margin-top: 0;
+}
+ul li {
+list-style: circle outside;
+}
+ul ul {
+margin-bottom: 0;
+}
+pre, code {
+background-color: #f7f7f7;
+border-radius: 3px;
+color: #333;
+white-space: pre-wrap; 
+}
+pre {
+border-radius: 3px;
+margin: 5px 0px 10px 0px;
+padding: 10px;
+}
+pre:not([class]) {
+background-color: #f7f7f7;
+}
+code {
+font-family: Consolas, Monaco, 'Courier New', monospace;
+font-size: 85%;
+}
+p > code, li > code {
+padding: 2px 0px;
+}
+div.figure {
+text-align: center;
+}
+img {
+background-color: #FFFFFF;
+padding: 2px;
+border: 1px solid #DDDDDD;
+border-radius: 3px;
+border: 1px solid #CCCCCC;
+margin: 0 5px;
+}
+h1 {
+margin-top: 0;
+font-size: 35px;
+line-height: 40px;
+}
+h2 {
+border-bottom: 4px solid #f7f7f7;
+padding-top: 10px;
+padding-bottom: 2px;
+font-size: 145%;
+}
+h3 {
+border-bottom: 2px solid #f7f7f7;
+padding-top: 10px;
+font-size: 120%;
+}
+h4 {
+border-bottom: 1px solid #f7f7f7;
+margin-left: 8px;
+font-size: 105%;
+}
+h5, h6 {
+border-bottom: 1px solid #ccc;
+font-size: 105%;
+}
+a {
+color: #0033dd;
+text-decoration: none;
+}
+a:hover {
+color: #6666ff; }
+a:visited {
+color: #800080; }
+a:visited:hover {
+color: #BB00BB; }
+a[href^="http:"] {
+text-decoration: underline; }
+a[href^="https:"] {
+text-decoration: underline; }
+
+code > span.kw { color: #555; font-weight: bold; } 
+code > span.dt { color: #902000; } 
+code > span.dv { color: #40a070; } 
+code > span.bn { color: #d14; } 
+code > span.fl { color: #d14; } 
+code > span.ch { color: #d14; } 
+code > span.st { color: #d14; } 
+code > span.co { color: #888888; font-style: italic; } 
+code > span.ot { color: #007020; } 
+code > span.al { color: #ff0000; font-weight: bold; } 
+code > span.fu { color: #900; font-weight: bold; } 
+code > span.er { color: #a61717; background-color: #e3d2d2; } 
+</style>
+
+
+
+
+</head>
+
+<body>
+
+
+
+
+<h1 class="title toc-ignore">Boilerplate detection: template links that
+live in the content</h1>
+<h4 class="author">Bart Turczynski</h4>
+<h4 class="date">2026-09-30</h4>
+
+
+<div id="TOC">
+<ul>
+<li><a href="#the-links-placement-cannot-reach" id="toc-the-links-placement-cannot-reach">The links placement cannot
+reach</a></li>
+<li><a href="#the-metric" id="toc-the-metric">The metric</a>
+<ul>
+<li><a href="#why-the-container-is-the-denominator" id="toc-why-the-container-is-the-denominator">Why the container is the
+denominator</a></li>
+</ul></li>
+<li><a href="#turning-it-on" id="toc-turning-it-on">Turning it on</a>
+<ul>
+<li><a href="#it-is-a-downweight-never-a-drop" id="toc-it-is-a-downweight-never-a-drop">It is a downweight, never a
+drop</a></li>
+</ul></li>
+<li><a href="#the-four-arguments" id="toc-the-four-arguments">The four
+arguments</a></li>
+<li><a href="#composing-with-region-weighting" id="toc-composing-with-region-weighting">Composing with region
+weighting</a></li>
+<li><a href="#what-to-expect-on-a-real-site-author-pages-will-drop" id="toc-what-to-expect-on-a-real-site-author-pages-will-drop">What to
+expect on a real site: author pages will drop</a></li>
+<li><a href="#getting-a-container-column-from-a-crawl" id="toc-getting-a-container-column-from-a-crawl">Getting a container
+column from a crawl</a></li>
+<li><a href="#see-also" id="toc-see-also">See also</a></li>
+</ul>
+</div>
+
+<div id="the-links-placement-cannot-reach" class="section level2">
+<h2>The links placement cannot reach</h2>
+<p>Weighting links by page region — <code>vignette(&quot;presets&quot;)</code>,
+<code>preset = &quot;content&quot;</code> — handles site chrome. Navigation,
+header, footer and sidebar stop voting at full strength, and the ranking
+stops being manufactured by whatever the template repeats on every
+page.</p>
+<p>It handles chrome and nothing else, because it can only ask <em>where
+on the page is this link</em>. A recycled call-to-action inside the
+article body, a compliance link dropped into every post, an author
+byline under every headline — these are in the content region. They
+<em>are</em> content, structurally. Placement will keep them at full
+weight forever, and they carry exactly the problem chrome does: one
+editorial decision, made once in a template, cast as thousands of
+votes.</p>
+<p>The boilerplate detector is the second way of asking. Instead of
+<em>where is this link</em>, it asks <strong>does this component always
+point at the same place</strong>.</p>
+</div>
+<div id="the-metric" class="section level2">
+<h2>The metric</h2>
+<p>The unit is a <strong>container</strong>: the template element a link
+sits in, identified stably across the pages it appears on. For each
+container-and-target pair:</p>
+<ul>
+<li><strong>denominator</strong> — the number of pages the container
+appears on at all;</li>
+<li><strong>numerator</strong> — the number of those pages where it
+points at <em>this</em> target;</li>
+<li><strong>ratio</strong> — numerator over denominator.</li>
+</ul>
+<p><code>ratio</code> is a boilerplate score in <code>[0, 1]</code>, and
+<strong>higher means more boilerplate</strong>. The polarity is easy to
+invert when reading, so it is worth stating twice:</p>
+<ul>
+<li><code>ratio = 1.0</code> — every single time this component
+appeared, it linked here. A template link. Gets discounted.</li>
+<li><code>ratio → 0</code> — this component picks a different target on
+each page. A genuine editorial choice, made per page. Keeps full
+weight.</li>
+</ul>
+<p>That separates two things which look identical structurally:</p>
+<table>
+<colgroup>
+<col width="25%" />
+<col width="25%" />
+<col width="25%" />
+<col width="25%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Component</th>
+<th>Behavior</th>
+<th>Ratio</th>
+<th>Verdict</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>A recycled “Book a demo” CTA</td>
+<td>always the same target</td>
+<td>~1.0</td>
+<td>boilerplate</td>
+</tr>
+<tr class="even">
+<td>A related-posts module</td>
+<td>different articles per page</td>
+<td>low</td>
+<td><strong>not</strong> boilerplate</td>
+</tr>
+</tbody>
+</table>
+<p>Both recur identically across the site. Only the first one is a
+template casting the same vote over and over; the second is the template
+asking a real question and getting a different answer every time. A
+detector keyed on “this component repeats” would flag both, and would be
+wrong about the second.</p>
+<div id="why-the-container-is-the-denominator" class="section level3">
+<h3>Why the container is the denominator</h3>
+<p>Scoring against the whole site instead would flag the homepage —
+correctly for the header logo, wrongly for an in-body link from an
+article that genuinely chose to point there. Same destination, opposite
+nature. <strong>Boilerplate is a property of the edge and of its source
+context, not of the destination.</strong></p>
+<p>Conditioning on the container also keeps the metric local. Landing
+pages, blog categories and post templates each have their own component
+sets, and a ratio computed within one of them says something a sitewide
+count cannot.</p>
+</div>
+</div>
+<div id="turning-it-on" class="section level2">
+<h2>Turning it on</h2>
+<p>The detector is off by default. It is switched on by
+<strong>data</strong> — the <code>container_col</code> argument naming a
+column of container identities — in the same way
+<code>placement_col</code> switches on region weighting and
+<code>nofollow_col</code> switches on nofollow handling.</p>
+<p>Here is a twelve-post blog. Every post carries a byline component
+linking one author, and a related-posts component linking a different
+post each time:</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" tabindex="-1"></a>posts <span class="ot">&lt;-</span> <span class="fu">sprintf</span>(<span class="st">&quot;/post-%02d&quot;</span>, <span class="dv">1</span><span class="sc">:</span><span class="dv">12</span>)</span>
+<span id="cb1-2"><a href="#cb1-2" tabindex="-1"></a></span>
+<span id="cb1-3"><a href="#cb1-3" tabindex="-1"></a>edges <span class="ot">&lt;-</span> <span class="fu">rbind</span>(</span>
+<span id="cb1-4"><a href="#cb1-4" tabindex="-1"></a>  <span class="co"># The byline: same component, same target, every single page.</span></span>
+<span id="cb1-5"><a href="#cb1-5" tabindex="-1"></a>  <span class="fu">data.frame</span>(<span class="at">from =</span> posts, <span class="at">to =</span> <span class="st">&quot;/author/dana&quot;</span>, <span class="at">container =</span> <span class="st">&quot;byline&quot;</span>),</span>
+<span id="cb1-6"><a href="#cb1-6" tabindex="-1"></a>  <span class="co"># Related posts: same component, a different target on each page.</span></span>
+<span id="cb1-7"><a href="#cb1-7" tabindex="-1"></a>  <span class="fu">data.frame</span>(<span class="at">from =</span> posts, <span class="at">to =</span> <span class="fu">rev</span>(posts), <span class="at">container =</span> <span class="st">&quot;related&quot;</span>),</span>
+<span id="cb1-8"><a href="#cb1-8" tabindex="-1"></a>  <span class="co"># A CTA that mostly, but not always, points at pricing.</span></span>
+<span id="cb1-9"><a href="#cb1-9" tabindex="-1"></a>  <span class="fu">data.frame</span>(</span>
+<span id="cb1-10"><a href="#cb1-10" tabindex="-1"></a>    <span class="at">from =</span> posts,</span>
+<span id="cb1-11"><a href="#cb1-11" tabindex="-1"></a>    <span class="at">to =</span> <span class="fu">c</span>(<span class="fu">rep</span>(<span class="st">&quot;/pricing&quot;</span>, <span class="dv">7</span>), <span class="fu">sprintf</span>(<span class="st">&quot;/guide-%02d&quot;</span>, <span class="dv">1</span><span class="sc">:</span><span class="dv">5</span>)),</span>
+<span id="cb1-12"><a href="#cb1-12" tabindex="-1"></a>    <span class="at">container =</span> <span class="st">&quot;cta&quot;</span></span>
+<span id="cb1-13"><a href="#cb1-13" tabindex="-1"></a>  )</span>
+<span id="cb1-14"><a href="#cb1-14" tabindex="-1"></a>)</span>
+<span id="cb1-15"><a href="#cb1-15" tabindex="-1"></a></span>
+<span id="cb1-16"><a href="#cb1-16" tabindex="-1"></a>scored <span class="ot">&lt;-</span> <span class="fu">pagerank</span>(edges, <span class="at">container_col =</span> <span class="st">&quot;container&quot;</span>)</span>
+<span id="cb1-17"><a href="#cb1-17" tabindex="-1"></a><span class="fu">head</span>(scored[<span class="fu">order</span>(<span class="sc">-</span>scored<span class="sc">$</span>pagerank), ], <span class="dv">4</span>)</span>
+<span id="cb1-18"><a href="#cb1-18" tabindex="-1"></a><span class="co">#&gt;       node_name   pagerank</span></span>
+<span id="cb1-19"><a href="#cb1-19" tabindex="-1"></a><span class="co">#&gt; 1  /author/dana 0.13501944</span></span>
+<span id="cb1-20"><a href="#cb1-20" tabindex="-1"></a><span class="co">#&gt; 19     /pricing 0.09535192</span></span>
+<span id="cb1-21"><a href="#cb1-21" tabindex="-1"></a><span class="co">#&gt; 12     /post-06 0.04872518</span></span>
+<span id="cb1-22"><a href="#cb1-22" tabindex="-1"></a><span class="co">#&gt; 13     /post-07 0.04872518</span></span></code></pre></div>
+<p>All three components appear on all twelve pages, and the ratio tells
+them apart. The byline scores <code>12/12 = 1.0</code> and is
+discounted. <code>related</code> scores <code>1/12</code> per target and
+keeps full weight. The CTA scores <code>7/12 = 0.58</code> for
+<code>/pricing</code> — over the default threshold, so discounted — and
+<code>1/12</code> for each guide, which is not.</p>
+<p>The provenance is recorded in the transition audit, so a run can
+always account for what it discounted and why:</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" tabindex="-1"></a><span class="fu">attr</span>(scored, <span class="st">&quot;transition_audit&quot;</span>)<span class="sc">$</span>config<span class="sc">$</span>boilerplate</span>
+<span id="cb2-2"><a href="#cb2-2" tabindex="-1"></a><span class="co">#&gt; $container_col</span></span>
+<span id="cb2-3"><a href="#cb2-3" tabindex="-1"></a><span class="co">#&gt; [1] &quot;container&quot;</span></span>
+<span id="cb2-4"><a href="#cb2-4" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb2-5"><a href="#cb2-5" tabindex="-1"></a><span class="co">#&gt; $boilerplate_threshold</span></span>
+<span id="cb2-6"><a href="#cb2-6" tabindex="-1"></a><span class="co">#&gt; [1] 0.5</span></span>
+<span id="cb2-7"><a href="#cb2-7" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb2-8"><a href="#cb2-8" tabindex="-1"></a><span class="co">#&gt; $min_container_pages</span></span>
+<span id="cb2-9"><a href="#cb2-9" tabindex="-1"></a><span class="co">#&gt; [1] 10</span></span>
+<span id="cb2-10"><a href="#cb2-10" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb2-11"><a href="#cb2-11" tabindex="-1"></a><span class="co">#&gt; $boilerplate_weight</span></span>
+<span id="cb2-12"><a href="#cb2-12" tabindex="-1"></a><span class="co">#&gt; [1] 0.5</span></span>
+<span id="cb2-13"><a href="#cb2-13" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb2-14"><a href="#cb2-14" tabindex="-1"></a><span class="co">#&gt; $n_containers</span></span>
+<span id="cb2-15"><a href="#cb2-15" tabindex="-1"></a><span class="co">#&gt; [1] 3</span></span>
+<span id="cb2-16"><a href="#cb2-16" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb2-17"><a href="#cb2-17" tabindex="-1"></a><span class="co">#&gt; $n_edges_scored</span></span>
+<span id="cb2-18"><a href="#cb2-18" tabindex="-1"></a><span class="co">#&gt; [1] 36</span></span>
+<span id="cb2-19"><a href="#cb2-19" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb2-20"><a href="#cb2-20" tabindex="-1"></a><span class="co">#&gt; $n_edges_judged</span></span>
+<span id="cb2-21"><a href="#cb2-21" tabindex="-1"></a><span class="co">#&gt; [1] 36</span></span>
+<span id="cb2-22"><a href="#cb2-22" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb2-23"><a href="#cb2-23" tabindex="-1"></a><span class="co">#&gt; $n_edges_discounted</span></span>
+<span id="cb2-24"><a href="#cb2-24" tabindex="-1"></a><span class="co">#&gt; [1] 19</span></span></code></pre></div>
+<div id="it-is-a-downweight-never-a-drop" class="section level3">
+<h3>It is a downweight, never a drop</h3>
+<p>Discounted edges stay in the graph at reduced weight. This is the
+same rule that governs region weighting, for the same two reasons:
+dropping edges changes the graph’s <em>shape</em> rather than its
+transition probabilities — pages reachable only through a template
+become teleport-only, pages linking out only through one become dangling
+— and detection is a heuristic, so a misclassified link at half weight
+is a small error where a deleted one is silent.</p>
+</div>
+</div>
+<div id="the-four-arguments" class="section level2">
+<h2>The four arguments</h2>
+<table>
+<colgroup>
+<col width="33%" />
+<col width="33%" />
+<col width="33%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Argument</th>
+<th>Default</th>
+<th>What it does</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>container_col</code></td>
+<td><code>NULL</code></td>
+<td>Names the container column. <strong>Supplying it turns the detector
+on.</strong></td>
+</tr>
+<tr class="even">
+<td><code>boilerplate_threshold</code></td>
+<td><code>0.5</code></td>
+<td>Ratio at or above which an edge is <em>classified</em>
+boilerplate.</td>
+</tr>
+<tr class="odd">
+<td><code>min_container_pages</code></td>
+<td><code>10</code></td>
+<td>Pages a container must appear on before any of its edges may be
+classified at all.</td>
+</tr>
+<tr class="even">
+<td><code>boilerplate_weight</code></td>
+<td><code>0.5</code></td>
+<td>The multiplier applied <em>once</em> an edge is classified.</td>
+</tr>
+</tbody>
+</table>
+<p><strong><code>boilerplate_threshold</code> and
+<code>boilerplate_weight</code> are unrelated quantities that happen to
+share a default of 0.5.</strong> One is a fraction of pages that decides
+<em>whether</em> an edge is boilerplate; the other is the discount
+applied once it is. Never read a bare “0.5” in this area without
+checking which one it refers to.</p>
+<p><code>0.5</code> as a threshold is a documented default, not an
+empirical cut — there is no natural break in the ratio distribution to
+find. It sits where it does because a stricter <code>0.9</code> misses
+two whole families of real boilerplate that recur across every crawl
+tested: recurring in-content CTAs (ratios 0.54–0.82) and author byline
+links (0.53–0.69).</p>
+<p><code>min_container_pages</code> is an evidence floor. A container
+appearing on three pages can only score <code>0.33</code>,
+<code>0.67</code> or <code>1.0</code>, so a high ratio there is
+quantization rather than signal. Ten is a judgment call, not a measured
+cut — raise it if your containers are large, lower it if your site is
+small.</p>
+<p>The CTA above is exactly the case the threshold decides. At the
+default it is caught; at <code>0.9</code> it is not, and only the byline
+is:</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" tabindex="-1"></a>discounted <span class="ot">&lt;-</span> <span class="cf">function</span>(threshold) {</span>
+<span id="cb3-2"><a href="#cb3-2" tabindex="-1"></a>  run <span class="ot">&lt;-</span> <span class="fu">pagerank</span>(edges, <span class="at">container_col =</span> <span class="st">&quot;container&quot;</span>,</span>
+<span id="cb3-3"><a href="#cb3-3" tabindex="-1"></a>                  <span class="at">boilerplate_threshold =</span> threshold)</span>
+<span id="cb3-4"><a href="#cb3-4" tabindex="-1"></a>  <span class="fu">attr</span>(run, <span class="st">&quot;transition_audit&quot;</span>)<span class="sc">$</span>config<span class="sc">$</span>boilerplate<span class="sc">$</span>n_edges_discounted</span>
+<span id="cb3-5"><a href="#cb3-5" tabindex="-1"></a>}</span>
+<span id="cb3-6"><a href="#cb3-6" tabindex="-1"></a></span>
+<span id="cb3-7"><a href="#cb3-7" tabindex="-1"></a><span class="fu">c</span>(<span class="at">default =</span> <span class="fu">discounted</span>(<span class="fl">0.5</span>), <span class="at">strict =</span> <span class="fu">discounted</span>(<span class="fl">0.9</span>))</span>
+<span id="cb3-8"><a href="#cb3-8" tabindex="-1"></a><span class="co">#&gt; default  strict </span></span>
+<span id="cb3-9"><a href="#cb3-9" tabindex="-1"></a><span class="co">#&gt;      19      12</span></span></code></pre></div>
+<p>Seven of those nineteen edges are the recurring CTA. On a real site
+that is the difference between catching the promotional module on every
+post and missing it — which is why the default sits at <code>0.5</code>
+rather than somewhere stricter and more comfortable-looking.</p>
+</div>
+<div id="composing-with-region-weighting" class="section level2">
+<h2>Composing with region weighting</h2>
+<p>Region and recurrence are <strong>two detectors feeding one
+axis</strong>, not two axes.</p>
+<p>This matters arithmetically. A nav link is boilerplate <em>by
+construction</em> — it is the same fact detected twice — so multiplying
+the two factors would discount it to <code>0.1 × 0.5 = 0.05</code>, a
+number nobody can explain and which no one intended. Instead the
+<strong>strongest applicable discount wins</strong>:</p>
+<table>
+<thead>
+<tr class="header">
+<th>Edge</th>
+<th>Detected by</th>
+<th align="right">Weight</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>nav / header / footer</td>
+<td>region</td>
+<td align="right">0.10</td>
+</tr>
+<tr class="even">
+<td>repetitive in-content</td>
+<td>recurrence</td>
+<td align="right">0.50</td>
+</tr>
+<tr class="odd">
+<td>unique in-content</td>
+<td>neither</td>
+<td align="right">1.00</td>
+</tr>
+</tbody>
+</table>
+<p>Three tiers, and chrome does not get pushed into a fourth just
+because two detectors agree about it. Supply both
+<code>placement_col</code> and <code>container_col</code> and you get
+exactly this table:</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" tabindex="-1"></a>mixed <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(</span>
+<span id="cb4-2"><a href="#cb4-2" tabindex="-1"></a>  <span class="at">from =</span> <span class="fu">rep</span>(posts, <span class="at">each =</span> <span class="dv">2</span>),</span>
+<span id="cb4-3"><a href="#cb4-3" tabindex="-1"></a>  <span class="at">to =</span> <span class="fu">rep</span>(<span class="fu">c</span>(<span class="st">&quot;/home&quot;</span>, <span class="st">&quot;/author/dana&quot;</span>), <span class="at">times =</span> <span class="dv">12</span>),</span>
+<span id="cb4-4"><a href="#cb4-4" tabindex="-1"></a>  <span class="at">region =</span> <span class="fu">rep</span>(<span class="fu">c</span>(<span class="st">&quot;nav&quot;</span>, <span class="st">&quot;content&quot;</span>), <span class="at">times =</span> <span class="dv">12</span>),</span>
+<span id="cb4-5"><a href="#cb4-5" tabindex="-1"></a>  <span class="at">container =</span> <span class="fu">rep</span>(<span class="fu">c</span>(<span class="st">&quot;mainnav&quot;</span>, <span class="st">&quot;byline&quot;</span>), <span class="at">times =</span> <span class="dv">12</span>)</span>
+<span id="cb4-6"><a href="#cb4-6" tabindex="-1"></a>)</span>
+<span id="cb4-7"><a href="#cb4-7" tabindex="-1"></a></span>
+<span id="cb4-8"><a href="#cb4-8" tabindex="-1"></a>both <span class="ot">&lt;-</span> <span class="fu">pagerank</span>(</span>
+<span id="cb4-9"><a href="#cb4-9" tabindex="-1"></a>  mixed,</span>
+<span id="cb4-10"><a href="#cb4-10" tabindex="-1"></a>  <span class="at">placement_col =</span> <span class="st">&quot;region&quot;</span>,</span>
+<span id="cb4-11"><a href="#cb4-11" tabindex="-1"></a>  <span class="at">placement_weights =</span> <span class="fu">c</span>(<span class="at">content =</span> <span class="dv">1</span>, <span class="at">nav =</span> <span class="fl">0.1</span>, <span class="at">header =</span> <span class="fl">0.1</span>,</span>
+<span id="cb4-12"><a href="#cb4-12" tabindex="-1"></a>                        <span class="at">footer =</span> <span class="fl">0.1</span>, <span class="at">aside =</span> <span class="fl">0.1</span>),</span>
+<span id="cb4-13"><a href="#cb4-13" tabindex="-1"></a>  <span class="at">container_col =</span> <span class="st">&quot;container&quot;</span></span>
+<span id="cb4-14"><a href="#cb4-14" tabindex="-1"></a>)</span>
+<span id="cb4-15"><a href="#cb4-15" tabindex="-1"></a><span class="fu">head</span>(both[<span class="fu">order</span>(<span class="sc">-</span>both<span class="sc">$</span>pagerank), ], <span class="dv">3</span>)</span>
+<span id="cb4-16"><a href="#cb4-16" tabindex="-1"></a><span class="co">#&gt;      node_name   pagerank</span></span>
+<span id="cb4-17"><a href="#cb4-17" tabindex="-1"></a><span class="co">#&gt; 1 /author/dana 0.39256198</span></span>
+<span id="cb4-18"><a href="#cb4-18" tabindex="-1"></a><span class="co">#&gt; 2        /home 0.11157025</span></span>
+<span id="cb4-19"><a href="#cb4-19" tabindex="-1"></a><span class="co">#&gt; 3     /post-01 0.04132231</span></span></code></pre></div>
+<p>The nav edge stays at <code>0.1</code> rather than falling to
+<code>0.05</code>, and the byline — which region weighting could never
+have touched — lands at <code>0.5</code>.</p>
+</div>
+<div id="what-to-expect-on-a-real-site-author-pages-will-drop" class="section level2">
+<h2>What to expect on a real site: author pages will drop</h2>
+<p>This is the consequence worth knowing in advance, because it looks
+like a bug the first time you see it.</p>
+<p>Byline links are textbook boilerplate: one template decision,
+replicated across every article, pointing at the same author page each
+time. On one crawl a single author page was linked from 4,116 of 7,563
+pages by an identical element. Under an unweighted PageRank that
+in-degree makes author pages some of the strongest nodes on the
+site.</p>
+<p>Turn the detector on and they fall — often a long way.</p>
+<p><strong>That is the detector working, not failing.</strong> None of
+those thousands of links was an editorial judgment that the author page
+deserved authority; one of them was, and it got replicated by a
+template. The ranking those links produced was manufactured by the
+markup rather than earned by the page. Discounting them puts author
+pages roughly where their genuinely editorial inbound links place
+them.</p>
+<p>The same reasoning applies to the other families the detector
+reliably finds — terms and privacy pages, cart and account links,
+promotional CTAs. If a page’s rank drops sharply when you enable the
+detector, that is a measurement of how much of its rank came from a
+template.</p>
+<p>If you disagree in a specific case, the judgment is yours to make:
+raise <code>boilerplate_threshold</code>, raise
+<code>boilerplate_weight</code> toward 1, or curate the container column
+so the component in question is not scored. The detector is a
+convenience, not an oracle, and “boilerplate but in main content” is
+ultimately a call about your own site.</p>
+</div>
+<div id="getting-a-container-column-from-a-crawl" class="section level2">
+<h2>Getting a container column from a crawl</h2>
+<p><code>container_col</code> is crawler-neutral by design:
+<code>pagerank()</code> only consumes container <em>identity</em> and
+never asks how it was derived. Any crawler that can say “these two links
+are the same template element” can drive the detector — a DOM path, a
+CSS selector, a template ID from a CMS export.</p>
+<p>For Screaming Frog, <code>sf_container_from_path()</code> derives
+identity from the DOM path SF exports:</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" tabindex="-1"></a><span class="fu">sf_container_from_path</span>(<span class="fu">c</span>(</span>
+<span id="cb5-2"><a href="#cb5-2" tabindex="-1"></a>  <span class="st">&quot;//body/div/main/article/div[@class=&#39;byline&#39;]/a[1]&quot;</span>,</span>
+<span id="cb5-3"><a href="#cb5-3" tabindex="-1"></a>  <span class="st">&quot;//body/div/main/article/div[@class=&#39;byline&#39;]/a[3]&quot;</span>,</span>
+<span id="cb5-4"><a href="#cb5-4" tabindex="-1"></a>  <span class="st">&quot;//body/div/main/article/p[5]/a&quot;</span></span>
+<span id="cb5-5"><a href="#cb5-5" tabindex="-1"></a>))</span>
+<span id="cb5-6"><a href="#cb5-6" tabindex="-1"></a><span class="co">#&gt; [1] &quot;//body/div/main/article/div[@class=&#39;byline&#39;]&quot;</span></span>
+<span id="cb5-7"><a href="#cb5-7" tabindex="-1"></a><span class="co">#&gt; [2] &quot;//body/div/main/article/div[@class=&#39;byline&#39;]&quot;</span></span>
+<span id="cb5-8"><a href="#cb5-8" tabindex="-1"></a><span class="co">#&gt; [3] &quot;//body/div/main/article/p&quot;</span></span></code></pre></div>
+<p>Two things happen there. The link’s own step is dropped, so the first
+and third anchor inside one byline resolve to the <strong>same</strong>
+container rather than to two — which is the point, since they are one
+component. And numeric indices are stripped, because the same component
+lands at <code>p[5]</code> on a long post and <code>p[3]</code> on a
+short one, so positions are noise for this question. Class predicates
+survive, because a class is exactly the stable component identifier we
+want.</p>
+<p>On real crawls this compresses 22,022 raw paths to 1,630 skeletons.
+The normalization is load-bearing: without it the detector under-detects
+in-content components while working fine on navigation, which is
+precisely backwards — navigation is already covered by region
+weighting.</p>
+<p>Note this cuts the <strong>opposite</strong> way from
+<code>sf_region_from_path()</code>, which strips predicates entirely so
+that a <code>div[@class=&#39;site-footer&#39;]</code> is not mistaken for a
+<code>&lt;footer&gt;</code> element. The two functions answer different
+questions — <em>which region is this</em> versus <em>is this the same
+component</em> — and the difference is deliberate.</p>
+<p><code>screaming_frog_links()</code> carries a <code>container</code>
+column for you. Note that <code>pagerank_screaming_frog()</code> does
+<strong>not</strong> pass it automatically: enabling a detector that
+reshuffles rankings for every Screaming Frog user by default would
+violate the package’s faithful-default rule. Ask for it explicitly.</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" tabindex="-1"></a>links <span class="ot">&lt;-</span> <span class="fu">screaming_frog_links</span>(<span class="st">&quot;all_inlinks.csv&quot;</span>)</span>
+<span id="cb6-2"><a href="#cb6-2" tabindex="-1"></a><span class="fu">pagerank</span>(links<span class="sc">$</span>edges, <span class="at">container_col =</span> <span class="st">&quot;container&quot;</span>)</span></code></pre></div>
+</div>
+<div id="see-also" class="section level2">
+<h2>See also</h2>
+<ul>
+<li><code>vignette(&quot;presets&quot;)</code> — region weighting and the
+<code>&quot;content&quot;</code> preset.</li>
+<li><code>?pagerank</code> for the argument reference.</li>
+<li><code>?sf_container_from_path</code>,
+<code>?screaming_frog_links</code> for the Screaming Frog path.</li>
+</ul>
+</div>
+
+
+
+<!-- code folding -->
+
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>
